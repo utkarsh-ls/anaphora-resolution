@@ -9,7 +9,7 @@ class MentionDataset(torch.utils.data.Dataset):
     SEP_TOKEN = "[SEP]"
     MAX_SEQ_LEN = 410
 
-    def __init__(self, ds_folder="ds", include_lang=["eng"], pad=True):
+    def __init__(self, ds_folder="../data/clean", include_lang=["eng"], pad=True):
         super().__init__()
         self.pad = pad
         self.tokenizer: BertTokenizer = BertTokenizer.from_pretrained(
@@ -140,7 +140,7 @@ class mLangDataset(torch.utils.data.Dataset):
     SEP_TOKEN = "[SEP]"
     MAX_SEQ_LEN = 410
 
-    def __init__(self, ds_folder="ds", include_lang=["eng"], pad=True):
+    def __init__(self, ds_folder="../data/clean", include_lang=["eng"], pad=True):
         super().__init__()
         self.pad = pad
         self.tokenizer: BertTokenizer = BertTokenizer.from_pretrained(

@@ -6,7 +6,7 @@ from pl_module import PLModule
 
 def main():
     checkpoint_callback = ModelCheckpoint(
-        dirpath="logs/checkpoints",
+        dirpath="../logs/checkpoints",
         filename="checkpoint_{epoch:02d}_{train_loss:.4f}",
         save_top_k=50,
         monitor="train_loss",
@@ -22,7 +22,7 @@ def main():
         callbacks=[checkpoint_callback, lr_monitor_callback],
         max_epochs=300,
         log_every_n_steps=1,
-        default_root_dir='./logs'
+        default_root_dir='../logs'
         # fast_dev_run=True,
     )
     ds = MentionDataset(include_lang= ["eng"])
