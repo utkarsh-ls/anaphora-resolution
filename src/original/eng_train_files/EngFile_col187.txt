@@ -1,0 +1,25 @@
+1293381329262796800	-	-
+Waverly	2	-
+doesn&apos;t	-	-
+mind	-	-
+it	-	-
+all	-	-
+.	-	-
+She	0	2
+loves	-	-
+animals	-	-
+.	-	-
+Maybe	-	-
+one	-	-
+day	-	-
+Nicole	-	-
+could	-	-
+show	-	-
+her	1	0
+how	-	-
+to	-	-
+help	-	-
+the	-	-
+animals	-	-
+?	-	-
+

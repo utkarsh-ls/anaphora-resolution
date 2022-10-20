@@ -1,0 +1,31 @@
+1293381343754235905	-	-
+Aj	3	-
+cried	-	-
+when	-	-
+I	0	-
+told	-	-
+him	-	-
+he	1	3
+was	-	-
+staying	-	-
+with	-	-
+his	2	1
+dad	-	-
+tomorrow	-	-
+
+.	-	-
+.	-	-
+well	-	-
+guess	-	-
+what	-	-
+bud	-	-
+mommy	-	-
+got	-	-
+plans	-	-
+
+.	-	-
+You	4	2
+will	-	-
+be	-	-
+okayyyy	-	-
+
