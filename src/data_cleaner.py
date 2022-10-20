@@ -6,7 +6,7 @@ import os
 import numpy as np
 from tqdm import tqdm
 
-DATA = "../data"
+DATA = "../data/original"
 
 
 def remove_emojis(data):
@@ -36,11 +36,12 @@ def remove_emojis(data):
     return re.sub(emoj, "", data)
 
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     data_dirs = os.listdir(DATA)
+    data_dirs = ['eng_train_files']
     for data_dir in data_dirs:
         DATA_PATH = os.path.join(DATA, data_dir)
-        NEW_DATA_PATH = os.path.join(DATA + "_new", data_dir + "_new")
+        NEW_DATA_PATH = os.path.join(DATA , "../clean/", data_dir )
 
         os.makedirs(NEW_DATA_PATH, exist_ok=True)
 
