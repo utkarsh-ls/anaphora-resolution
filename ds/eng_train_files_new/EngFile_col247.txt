@@ -1,0 +1,37 @@
+0000	-	-
+dame's	-	-
+top	-	-
+10	-	-
+.	-	-
+if	-	-
+you	1	-
+don't	-	-
+think	-	-
+so	-	-
+you	0	1
+are	-	-
+wrong.	-	-
+
+0000	-	-
+@rubentalkskicks	-	-
+i	2	-
+blame	-	-
+pg	-	-
+and	-	-
+pat	5	-
+beverly	5	-
+for	-	-
+dame	-	-
+time	-	-
+getting	-	-
+into	-	-
+#mambamentality	-	-
+
+0000	-	-
+@bmac_sportstalk	-	-
+he	3	5
+is	-	-
+a	-	-
+bad	-	-
+man	-	-
+

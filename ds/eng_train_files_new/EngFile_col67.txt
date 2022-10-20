@@ -1,0 +1,24 @@
+0000	-	-
+she	0	-
+asked	-	-
+me	1	-
+like	-	-
+i	2	1
+created	-	-
+that	-	-
+shit	-	-
+
+.	-	-
+i	3	2
+had	-	-
+to	-	-
+look	-	-
+at	-	-
+her	4	0
+up	-	-
+down	-	-
+then	-	-
+walk	-	-
+away	-	-
+.	-	-
+

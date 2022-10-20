@@ -1,0 +1,21 @@
+0000	-	-
+.	-	-
+.	-	-
+.	-	-
+i	0	-
+think	-	-
+nico	3	-
+wears	-	-
+it	1	-
+better	-	-
+.	-	-
+.	-	-
+.	-	-
+<url>	-	-
+
+0000	-	-
+@tanukidad	-	-
+yes	-	-
+he	2	3
+does	-	-
+

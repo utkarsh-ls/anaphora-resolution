@@ -1,0 +1,14 @@
+0000	-	-
+i	0	-
+drink	-	-
+lipton	-	-
+
+0000	-	-
+@carmennjul	-	-
+she	1	-
+dribks	-	-
+lemonade	-	-
+i	2	-
+drink	-	-
+liptopn	-	-
+

@@ -1,0 +1,20 @@
+0000	-	-
+does	-	-
+anyone	-	-
+think	-	-
+trump	0	-
+will	-	-
+boot	-	-
+pence	-	-
+because	-	-
+he	1	0
+knows	-	-
+kamala	-	-
+is	-	-
+a	-	-
+much	-	-
+stronger	-	-
+vp	-	-
+candidate	-	-
+?	-	-
+

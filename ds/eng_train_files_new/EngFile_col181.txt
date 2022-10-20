@@ -1,0 +1,24 @@
+0000	-	-
+is	-	-
+it	-	-
+kah-mull-uh	-	-
+cam-uh-luh	-	-
+kuh-mill-uh	-	-
+or	-	-
+something	-	-
+else?	-	-
+
+0000	-	-
+@sharylattkisson	-	-
+comma-la	-	-
+is	-	-
+her	0	-
+preferred	-	-
+pronunciation	-	-
+.	-	-
+but	-	-
+is	-	-
+she	1	0
+black	-	-
+?	-	-
+

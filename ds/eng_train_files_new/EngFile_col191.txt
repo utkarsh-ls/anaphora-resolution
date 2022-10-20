@@ -1,0 +1,11 @@
+0000	-	-
+darlington	-	-
+but	-	-
+he	0	-
+says	-	-
+he	1	0
+is	-	-
+being	-	-
+ironic	-	-
+<url>	-	-
+

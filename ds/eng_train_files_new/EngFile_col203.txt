@@ -1,0 +1,15 @@
+0000	-	-
+is	-	-
+she	0	-
+running	-	-
+for	-	-
+president	-	-
+?	-	-
+<url>	-	-
+
+0000	-	-
+@springsteps	-	-
+actually...yeah	-	-
+she	1	0
+is.	-	-
+

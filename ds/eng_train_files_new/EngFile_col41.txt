@@ -1,0 +1,38 @@
+0000	-	-
+mans	3	-
+said	-	-
+save	-	-
+up	-	-
+10k	-	-
+in	-	-
+8	-	-
+months	-	-
+like	-	-
+i	0	-
+don't	-	-
+have	-	-
+a	-	-
+compulsive	-	-
+shopping	-	-
+disorder	-	-
+smh	-	-
+
+.	-	-
+.	-	-
+he's	-	-
+not	-	-
+wrong	-	-
+tho	-	-
+<url>	-	-
+
+0000	-	-
+@jayrad_thehomie	-	-
+he	1	-
+said	-	-
+that	-	-
+like	-	-
+we	2	-
+aren't	-	-
+all	-	-
+unemployed	-	-
+

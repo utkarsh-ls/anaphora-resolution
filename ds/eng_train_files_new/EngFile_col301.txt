@@ -1,0 +1,20 @@
+0000	-	-
+what	-	-
+he	0	-
+said	-	-
+.	-	-
+i	1	2
+came	-	-
+out	-	-
+of	-	-
+necessity	-	-
+but	-	-
+i	2	-
+am	-	-
+still	-	-
+here	-	-
+by	-	-
+choice	-	-
+.	-	-
+<url>	-	-
+

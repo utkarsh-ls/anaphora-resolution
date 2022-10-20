@@ -1,0 +1,32 @@
+0000	-	-
+why	-	-
+despite	-	-
+its	-	-
+faults	-	-
+you	0	-
+have	-	-
+to	-	-
+love	-	-
+america	-	-
+.	-	-
+where	-	-
+else	-	-
+does	-	-
+this	-	-
+happen	-	-
+?	-	-
+<url>	-	-
+
+0000	-	-
+@chsommers	-	-
+@benshapiro	-	-
+she	1	-
+slept	-	-
+with	-	-
+her	2	1
+boss	-	-
+to	-	-
+get	-	-
+a	-	-
+job	-	-
+

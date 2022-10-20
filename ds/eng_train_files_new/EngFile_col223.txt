@@ -1,0 +1,18 @@
+0000	-	-
+hillary	-	-
+endorses	-	-
+kamala	0	-
+:	-	-
+she	1	0
+is	-	-
+an	-	-
+incredible	-	-
+public	-	-
+servant	-	-
+and	-	-
+leader'	-	-
+<url>	-	-
+via	-	-
+@saracarterdc	-	-
+<url>	-	-
+

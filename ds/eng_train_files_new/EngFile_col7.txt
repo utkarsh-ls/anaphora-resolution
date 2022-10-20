@@ -1,0 +1,19 @@
+0000	-	-
+trump	1	-
+logic	-	-
+is	-	-
+that	-	-
+somehow	-	-
+he	0	1
+has	-	-
+still	-	-
+been	-	-
+helping	-	-
+the	-	-
+economy	-	-
+what	-	-
+a	-	-
+fucking	-	-
+moron	-	-
+.	-	-
+

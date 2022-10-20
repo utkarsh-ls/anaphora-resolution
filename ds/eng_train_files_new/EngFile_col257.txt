@@ -1,0 +1,12 @@
+0000	-	-
+maya	2	-
+rudolph	2	-
+after	-	-
+she	0	2
+recognizes	-	-
+she	1	0
+gets	-	-
+more	-	-
+martinis	-	-
+:	-	-
+

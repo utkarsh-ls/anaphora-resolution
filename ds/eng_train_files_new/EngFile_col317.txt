@@ -1,0 +1,25 @@
+0000	-	-
+.@selenagomez	-	-
+gained	-	-
+nearly	-	-
+278k	-	-
+followers	-	-
+on	-	-
+instagram	-	-
+following	-	-
+the	-	-
+#selpink	-	-
+announcement	-	-
+.	-	-
+<url>	-	-
+
+0000	-	-
+@selvul	-	-
+@selenagomez	1	-
+she	0	1
+goes	-	-
+back	-	-
+for	-	-
+her	2	0
+crown	-	-
+

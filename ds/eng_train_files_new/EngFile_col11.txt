@@ -1,0 +1,20 @@
+0000	-	-
+i	3	-
+am	-	-
+forever	-	-
+having	-	-
+ramon	0	-
+doing	-	-
+some	-	-
+extra	-	-
+shit	-	-
+he	1	0
+say	-	-
+something	-	-
+slick	-	-
+but	-	-
+never	-	-
+let	-	-
+me	2	3
+down	-	-
+

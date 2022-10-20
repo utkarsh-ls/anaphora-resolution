@@ -1,0 +1,22 @@
+0000	-	-
+why	-	-
+does	-	-
+mitch	0	-
+mcconnell	0	-
+have	-	-
+that	-	-
+look	-	-
+on	-	-
+his	1	0
+face	-	-
+?	-	-
+<url>	-	-
+
+0000	-	-
+@mysterysolvent	-	-
+she	2	-
+what!	-	-
+?	-	-
+oh	-	-
+sh**	-	-
+

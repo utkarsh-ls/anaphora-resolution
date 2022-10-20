@@ -1,0 +1,48 @@
+0000	-	-
+@thekitchengent	7	-
+you	6	7
+are	-	-
+the	-	-
+only	-	-
+one	-	-
+lying	-	-
+
+0000	-	-
+@eurovisiondiana	-	-
+ben	-	-
+telling	-	-
+the	-	-
+truth	-	-
+tho	-	-
+
+0000	-	-
+@thekitchengent	4	-
+zac	-	-
+you	0	4
+aren't	-	-
+allowed	-	-
+to	-	-
+agree	-	-
+with	-	-
+ben	5	-
+wtf	-	-
+
+0000	-	-
+@eurovisiondiana	-	-
+he	1	5
+is	-	-
+right	-	-
+call	-	-
+me	2	0
+katy	-	-
+perry's	-	-
+fourth	-	-
+studio	-	-
+album	-	-
+witness	-	-
+because	-	-
+i	3	2
+am	-	-
+a	-	-
+flop	-	-
+

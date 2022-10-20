@@ -1,0 +1,42 @@
+0000	-	-
+there	-	-
+is	-	-
+only	-	-
+one	-	-
+correct	-	-
+answer	-	-
+here	-	-
+.	-	-
+<url>	-	-
+
+0000	-	-
+@slamonline	-	-
+prime	-	-
+drose	-	-
+was	-	-
+a	-	-
+better	-	-
+player	-	-
+than	-	-
+scottie	-	-
+pippen	-	-
+lol	-	-
+
+0000	-	-
+@__ballislife_2	-	-
+@slamonline	-	-
+i	0	-
+love	-	-
+drose	2	-
+but	-	-
+ain't	-	-
+no	-	-
+way	-	-
+in	-	-
+hell	-	-
+he	1	2
+was	-	-
+better	-	-
+than	-	-
+pippen	-	-
+

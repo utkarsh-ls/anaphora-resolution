@@ -1,0 +1,22 @@
+0000	-	-
+tez	0	-
+really	-	-
+left	-	-
+me	1	-
+you	3	-
+all	-	-
+i	4	1
+am	-	-
+sad	-	-
+
+0000	-	-
+@mc32banks	-	-
+girl	-	-
+he	5	0
+is	-	-
+what	-	-
+an	-	-
+hour	-	-
+away	-	-
+lol?	-	-
+

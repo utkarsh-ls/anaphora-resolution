@@ -1,0 +1,36 @@
+0000	-	-
+kamala	0	-
+harris	-	-
+?	-	-
+really	-	-
+dnc	-	-
+?	-	-
+if	-	-
+they	1	-
+were	-	-
+looking	-	-
+for	-	-
+the	-	-
+only	-	-
+candidate	-	-
+less	-	-
+likable	-	-
+than	-	-
+hillary	-	-
+clinton	-	-
+way	-	-
+to	-	-
+go	-	-
+.	-	-
+lol	-	-
+
+0000	-	-
+@politibunny	-	-
+and....	-	-
+she	2	0
+cackles	-	-
+like	-	-
+hillary	-	-
+too	-	-
+.	-	-
+

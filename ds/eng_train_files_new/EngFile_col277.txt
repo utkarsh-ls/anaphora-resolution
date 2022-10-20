@@ -1,0 +1,33 @@
+orignew1	-	-
+0	-	-
+0	-	-
+0000	-	-
+@wyattsprivate	-	-
+he	0	-
+will	-	-
+be	-	-
+a	-	-
+nat	-	-
+by	-	-
+then	-	-
+
+0000	-	-
+man	-	-
+i	1	-
+keep	-	-
+trying	-	-
+to	-	-
+ft	-	-
+my	-	-
+brother	-	-
+but	-	-
+my	2	1
+dumass	-	-
+thinks	-	-
+he	3	0
+still	-	-
+has	-	-
+a	-	-
+iphone	-	-
+smh	-	-
+

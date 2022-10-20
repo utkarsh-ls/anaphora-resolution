@@ -1,0 +1,25 @@
+0000	-	-
+waverly	2	-
+doesn't	-	-
+mind	-	-
+it	-	-
+all	-	-
+.	-	-
+she	0	2
+loves	-	-
+animals	-	-
+.	-	-
+maybe	-	-
+one	-	-
+day	-	-
+nicole	-	-
+could	-	-
+show	-	-
+her	1	0
+how	-	-
+to	-	-
+help	-	-
+the	-	-
+animals	-	-
+?	-	-
+
