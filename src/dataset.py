@@ -46,22 +46,22 @@ class mLangDataset(torch.utils.data.Dataset):
             padding=self.pad,
             return_tensors="pt",
         )
-        self.token_id_lists = tokenizer_out['input_ids']
+        self.token_id_lists = tokenizer_out["input_ids"]
         self.MAX_SEQ_LEN = len(self.token_id_lists[0])
-        self.mask_lists = tokenizer_out['attention_mask']
+        self.mask_lists = tokenizer_out["attention_mask"]
         # for i in range(len(token_lists)):
         #     if len(token_lists[i]) == self.MAX_SEQ_LEN-2:
         #         print(i, self.files[i])
         if self.pad:
             for i in range(len(self.files)):
-                ref_idx_lists[i] += [0]*(self.MAX_SEQ_LEN - len(ref_idx_lists[i]))
+                ref_idx_lists[i] += [0] * (self.MAX_SEQ_LEN - len(ref_idx_lists[i]))
 
-        self.ref_idx_lists = torch.as_tensor(ref_idx_lists,dtype=torch.long)
+        self.ref_idx_lists = torch.as_tensor(ref_idx_lists, dtype=torch.long)
         # self.one_hot_lists = []
         # _eye = np.eye(self.MAX_SEQ_LEN)
         # for ref_idx_list in ref_idx_lists:
         #     self.one_hot_lists.append(_eye[ref_idx_list])
-        
+
         # self.one_hot_lists = torch.as_tensor(self.one_hot_lists, dtype=torch.float32)
 
     def __len__(self):
@@ -87,7 +87,7 @@ class mLangDataset(torch.utils.data.Dataset):
         def update_list(tok, ref_id):
             token_list.append(tok)
             ref_id_list.append(ref_id)
-        
+
         was_last_line_empty = True
         for line in lines:
             if not line:
@@ -103,14 +103,14 @@ class mLangDataset(torch.utils.data.Dataset):
                 continue
             word_id = int(word_id) if word_id.isnumeric() else -1
             ref_id = int(ref_id) if ref_id.isnumeric() else -1
-            word= word.lower()
+            word = word.lower()
             # if ref_id == 8:
             # print(line, self.files[index], flush=True)
-            if word[0] == '@':
+            if word[0] == "@":
                 if word not in user_name_to_id:
-                    user_name_to_id[word] = "user"+str(len(user_name_to_id))
+                    user_name_to_id[word] = "user" + str(len(user_name_to_id))
                 word = user_name_to_id[word]
-                
+
             if word_id != -1:
                 word_ids_to_idx[word_id] = len(token_list)
             tokens = self.tokenizer.tokenize(word)
@@ -140,7 +140,6 @@ def get_dataloaders(ds_cls, config):
     # print("VAL SIZE:", val_size)
     # print("TEST SIZE:", test_size)
 
-
     train_ds, val_ds, test_ds = torch.utils.data.random_split(
         ds, [train_size, val_size, test_size]
     )
@@ -156,10 +155,11 @@ def get_dataloaders(ds_cls, config):
     # print(len(train_ds), len(val_ds), len(test_ds))
     return train_loader, val_loader, test_loader, ds.MAX_SEQ_LEN
 
-def view_ds(ds:mLangDataset):
+
+def view_ds(ds: mLangDataset):
     for tok_id_list, mask, ref_idx_list in ds:
-        tok_list= ds.tokenizer.convert_ids_to_tokens(tok_id_list)
-        tok_list= list(filter(lambda tok: tok!='[PAD]', tok_list))
+        tok_list = ds.tokenizer.convert_ids_to_tokens(tok_id_list)
+        tok_list = list(filter(lambda tok: tok != "[PAD]", tok_list))
         print(tok_list)
 
 

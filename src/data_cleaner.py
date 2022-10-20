@@ -38,10 +38,10 @@ def remove_emojis(data):
 
 if __name__ == "__main__":
     data_dirs = os.listdir(DATA)
-    data_dirs = ['eng_train_files']
+    data_dirs = ["eng_train_files"]
     for data_dir in data_dirs:
         DATA_PATH = os.path.join(DATA, data_dir)
-        NEW_DATA_PATH = os.path.join(DATA , "../clean/", data_dir )
+        NEW_DATA_PATH = os.path.join(DATA, "../clean/", data_dir)
 
         os.makedirs(NEW_DATA_PATH, exist_ok=True)
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
                     no_urls=True,
                     no_emails=True,
                     no_phone_numbers=True,
-                    no_digits = False,
+                    no_digits=False,
                     no_currency_symbols=True,
                     # no_punct=True,
                     replace_with_email="email",
