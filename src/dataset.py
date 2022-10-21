@@ -221,7 +221,7 @@ class PairScoreDataset(torch.utils.data.Dataset):
         # self.one_hot_lists = torch.as_tensor(self.one_hot_lists, dtype=torch.float32)
         mention_model = PLModuleMention(self.MAX_SEQ_LEN)
         mention_model.load_state_dict(
-            torch.load("../mention.ckpt", map_location=self.device)["state_dict"]
+            torch.load("../men_hin.ckpt", map_location=self.device)["state_dict"]
         )
         mention_model.eval()
         mention_model.model.eval()
@@ -232,12 +232,20 @@ class PairScoreDataset(torch.utils.data.Dataset):
         word1_embed_list = []
         word2_embed_list = []
         is_pair_list = []
+        mention_logits = []
+        word_embeds = []
         with torch.no_grad():
-            mention_logits, word_embeds = mention_model(
-                self.token_id_lists.to(self.device), self.mask_lists.to(self.device)
-            )
-            mention_logits = mention_logits.cpu()
-            word_embeds = word_embeds.cpu()
+            for tok_id_l, mask_l in zip(
+                self.token_id_lists.to(self.device).chunk(10),
+                self.mask_lists.to(self.device).chunk(10),
+            ):
+                mention_logits_i, word_embeds_i = mention_model(tok_id_l, mask_l)
+                mention_logits_i = mention_logits_i.cpu().numpy()
+                word_embeds_i = word_embeds_i.cpu().numpy()
+                mention_logits.extend(list(mention_logits_i))
+                word_embeds.extend(list(word_embeds_i))
+            mention_logits = torch.tensor(np.asarray(mention_logits))
+            word_embeds = torch.tensor(np.asarray(word_embeds))
 
         selected_words = mention_logits >= 0.5
 
@@ -467,6 +475,6 @@ if __name__ == "__main__":
     # # print(mx)
     # print(ds[0][0].size(), ds[0][1].size())
     # view_ds(ds)
-    get_mention_ratio(MentionDataset())
-    ds = MentionDataset()
-    view_ds(ds)
+    # get_mention_ratio(MentionDataset())
+    ds = PairScoreDataset(include_lang=["eng", "hin"])
+    # view_ds(ds)
