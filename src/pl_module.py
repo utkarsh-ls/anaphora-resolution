@@ -1,17 +1,20 @@
+from itertools import combinations
 import pytorch_lightning as pl
-from model import MentionModel
+from model import MentionModel, PairScoreModel
 import torch
 
 
-class PLModule(pl.LightningModule):
+class PLModuleMention(pl.LightningModule):
     def __init__(self, max_seq_len, lr=1e-3, pos_wt=1e2):
-        super(PLModule, self).__init__()
+        super(PLModuleMention, self).__init__()
         self.max_seq_len = max_seq_len
         self.pos_wt = pos_wt
         self.lr = lr
         self.model = MentionModel()
         self.l1_loss = torch.nn.L1Loss()
-        self.loss_fn = torch.nn.BCEWithLogitsLoss(pos_weight=torch.tensor(self.pos_wt).to(self.device))
+        self.loss_fn = torch.nn.BCEWithLogitsLoss(
+            pos_weight=torch.tensor(self.pos_wt).to(self.device)
+        )
         self.save_hyperparameters()
 
     def forward(self, ids, mask):
@@ -50,8 +53,128 @@ class PLModule(pl.LightningModule):
         mask = gt == for_ment
         if for_ment == -1:
             mask = mask | True
-        correct = (pred_cls == true_cls)*mask
+        correct = (pred_cls == true_cls) * mask
         return correct.sum() / mask.sum()
+
+    def training_step(self, batch, batch_idx):
+        return self._common_step(batch, "train")
+
+    def validation_step(self, batch, batch_idx):
+        return self._common_step(batch, "val")
+
+    def test_step(self, batch, batch_idx):
+        return self._common_step(batch, "test")
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr)
+        # lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        #     optimizer, **self.config["lr_sched"]
+        # )
+        return {
+            "optimizer": optimizer,
+            # "lr_scheduler": {
+            #     "scheduler": lr_scheduler,
+            #     "monitor": "val_loss",
+            # },
+        }
+
+
+class PLModulePairScore(pl.LightningModule):
+    def __init__(self, mention_wt_path: str, max_seq_len, lr=1e-3, pos_wt=1):
+        super(PLModulePairScore, self).__init__()
+        self.max_seq_len = max_seq_len
+        self.pos_wt = pos_wt
+        self.lr = lr
+        self.model = PairScoreModel()
+        self.mention_model = PLModuleMention(max_seq_len)
+        self.mention_model.load_state_dict(
+            torch.load(mention_wt_path, map_location=self.device)["state_dict"]
+        )
+        self.mention_model.eval()
+        for p in self.mention_model.parameters():
+            p.requires_grad = False
+        self.BCELogitsLoss = torch.nn.BCEWithLogitsLoss(
+            pos_weight=torch.tensor(self.pos_wt).to(self.device)
+        )
+        self.save_hyperparameters()
+
+    def forward(self, ids, mask):
+        mention_logits, word_embeds = self.mention_model.forward(ids, mask)
+        selected_words = mention_logits >= 0.5
+        all_scores = []
+        for w_embeds, sel_words in zip(word_embeds, selected_words):
+            w_embeds = w_embeds[sel_words]
+            scores = []
+            for w_embed1, w_embed2 in combinations(w_embeds, 2):
+                score = self.model.forward(w_embed1, w_embed2)
+                scores.append(score)
+            all_scores.append(scores)
+
+        return all_scores, selected_words
+
+    def loss_fn(self, mentn_cluster_lists, all_scores, selected_words):
+        total_loss = 0.0
+        total_samples = 0
+        flattened_gt = []
+        flattened_pred = []
+        for sel_words, scores, mcluster_list in zip(
+            selected_words, all_scores, mentn_cluster_lists
+        ):
+            indices = torch.arange(len(sel_words))[sel_words]
+            for (i, j), score in zip(combinations(indices, 2), scores):
+                is_same_cluster = torch.tensor(0, dtype=score.dtype).to(score.device)
+                for c in mcluster_list:
+                    if i in c and j in c:
+                        is_same_cluster += 1
+                        break
+                total_samples += 1
+                total_loss += self.BCELogitsLoss(score, is_same_cluster)
+                flattened_gt.append(is_same_cluster)
+                flattened_pred.append(score)
+        return (
+            total_loss / total_samples,
+            torch.as_tensor(flattened_pred),
+            torch.as_tensor(flattened_gt),
+        )
+
+    def _common_step(self, batch, mode: str):
+        tok_id_list, mask, mentn_cluster_lists = batch
+        scores, selected_words = self.forward(tok_id_list, mask)
+
+        loss, flattened_pred, flattened_gt = self.loss_fn(
+            mentn_cluster_lists, scores, selected_words
+        )
+
+        self.log_dict(
+            {
+                f"{mode}_loss": loss.detach(),
+                f"{mode}_pos_acc": self._pair_score_acc(
+                    flattened_pred, flattened_gt, 1, mode
+                ),
+                f"{mode}_neg_acc": self._pair_score_acc(
+                    flattened_pred, flattened_gt, 0, mode
+                ),
+                f"{mode}_all_acc": self._pair_score_acc(
+                    flattened_pred, flattened_gt, -1, mode
+                ),
+            },
+            on_step=True,
+            on_epoch=False,
+            prog_bar=True,
+        )
+
+        return {"loss": loss}
+
+    def _pair_score_acc(self, pred, gt, _class=0, mode='Train'):
+        # gt: B, L
+        pred_cls = pred >= 0.5
+        true_cls = gt != 0
+        mask = gt == _class
+        if _class == -1:
+            mask = mask | True
+        correct = (pred_cls == true_cls) * mask
+        self.print(f'{mode}: {correct.sum()}, {mask.sum()}, {_class}')
+        return correct.sum() / (mask.sum()+1e-6)
 
     def training_step(self, batch, batch_idx):
         return self._common_step(batch, "train")

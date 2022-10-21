@@ -135,7 +135,7 @@ class MentionDataset(torch.utils.data.Dataset):
         # return tokenizer_out['input_ids'], tokenizer_out['attention_mask'], ref_index_list
 
 
-class mLangDataset(torch.utils.data.Dataset):
+class PairScoreDataset(torch.utils.data.Dataset):
     CLS_TOKEN = "[CLS]"
     SEP_TOKEN = "[SEP]"
     MAX_SEQ_LEN = 410
@@ -165,10 +165,13 @@ class mLangDataset(torch.utils.data.Dataset):
 
         token_lists = []
         ref_idx_lists = []
+        mentn_cluster_lists = []
         for i in range(len(self)):
-            tok_list, ref_idx_list = self._parse_file(i)
+            tok_list, ref_idx_list, mention_cluster = self._parse_file(i)
             token_lists.append(tok_list)
             ref_idx_lists.append(ref_idx_list)
+            mentn_cluster_lists.append(mention_cluster)
+        self.mentn_cluster_lists = [[list(c) for c in mc] for mc in mentn_cluster_lists]
 
         tokenizer_out = self.tokenizer.batch_encode_plus(
             token_lists,
@@ -186,6 +189,15 @@ class mLangDataset(torch.utils.data.Dataset):
         if self.pad:
             for i in range(len(self.files)):
                 ref_idx_lists[i] += [0] * (self.MAX_SEQ_LEN - len(ref_idx_lists[i]))
+        
+        self.MAX_CLUSTER_COUNT = max([len(c) for c in self.mentn_cluster_lists])
+        for i in range(len(self.mentn_cluster_lists)):
+            self.mentn_cluster_lists[i] += [[]]*(self.MAX_CLUSTER_COUNT - len(self.mentn_cluster_lists[i]))
+
+        self.MAX_CLUSTER_SIZE = max([max([len(c) for c in cluster_list]) for cluster_list in self.mentn_cluster_lists])
+        for i in range(len(self.mentn_cluster_lists)):
+            for j in range(len(self.mentn_cluster_lists[i])):
+                self.mentn_cluster_lists[i][j] += [-1]*(self.MAX_CLUSTER_SIZE - len(self.mentn_cluster_lists[i][j]))
 
         self.ref_idx_lists = torch.as_tensor(ref_idx_lists, dtype=torch.long)
         # self.one_hot_lists = []
@@ -202,7 +214,7 @@ class mLangDataset(torch.utils.data.Dataset):
         return (
             self.token_id_lists[idx],
             self.mask_lists[idx],
-            self.ref_idx_lists[idx],
+            self.mentn_cluster_lists[idx],
         )
 
     def _parse_file(self, index):
@@ -214,6 +226,7 @@ class mLangDataset(torch.utils.data.Dataset):
         ref_id_list = [-1]
         word_ids_to_idx = {-1: 0}
         user_name_to_id = {}
+        mention_clusters = []
 
         def update_list(tok, ref_id):
             token_list.append(tok)
@@ -234,6 +247,7 @@ class mLangDataset(torch.utils.data.Dataset):
                 continue
             word_id = int(word_id) if word_id.isnumeric() else -1
             ref_id = int(ref_id) if ref_id.isnumeric() else -1
+            
             word = word.lower()
             # if ref_id == 8:
             # print(line, self.files[index], flush=True)
@@ -244,19 +258,41 @@ class mLangDataset(torch.utils.data.Dataset):
 
             if word_id != -1:
                 word_ids_to_idx[word_id] = len(token_list)
+            # Create clusters of co-references
+            if word_id!=-1 and ref_id!=-1 and ref_id in word_ids_to_idx:
+                word_set = set()
+                ref_set = set()
+                for c in mention_clusters:
+                    if word_ids_to_idx[word_id] in c:
+                        word_set = c
+                    if word_ids_to_idx[ref_id] in c:
+                        ref_set = c
+                if len(word_set)==0 and len(ref_set)==0:
+                    c = set()
+                    c.add(word_ids_to_idx[word_id])
+                    c.add(word_ids_to_idx[ref_id])
+                    mention_clusters.append(c)
+                elif len(word_set)==0:
+                    ref_set.add(word_ids_to_idx[word_id])
+                elif len(ref_set)==0:
+                    word_set.add(word_ids_to_idx[ref_id])
+                elif word_set is not ref_set:
+                    mention_clusters.remove(word_set)
+                    mention_clusters.remove(ref_set)
+                    mention_clusters.append(word_set | ref_set)
+
             tokens = self.tokenizer.tokenize(word)
             update_list(tokens[0], ref_id)
             was_last_line_empty = False
             tokens = tokens[1:]
             for tok in tokens:
                 update_list(tok, -1)
-
         token_id_list = self.tokenizer.convert_tokens_to_ids(token_list)
         # tokenizer_out = self.tokenizer.encode_plus(token_list, add_special_tokens=False,padding=False,return_tensors='pt')
         ref_index_list = [word_ids_to_idx.get(ref_id, 0) for ref_id in ref_id_list]
 
         assert len(token_id_list) == len(ref_index_list)
-        return token_id_list, ref_index_list
+        return token_id_list, ref_index_list, mention_clusters
         # return tokenizer_out['input_ids'], tokenizer_out['attention_mask'], ref_index_list
 
 
@@ -287,11 +323,17 @@ def get_dataloaders(ds, config):
     return train_loader, val_loader, test_loader
 
 
-def view_ds(ds: mLangDataset):
+def view_ds(ds: MentionDataset):
     for tok_id_list, mask, ref_idx_list in ds:
         tok_list = ds.tokenizer.convert_ids_to_tokens(tok_id_list)
         tok_list = list(filter(lambda tok: tok != "[PAD]", tok_list))
         print(tok_list)
+
+def view_ds(ds: PairScoreDataset):
+    for tok_id_list, mask, ref_idx_list, mentn_cluster_list, f in ds:
+        tok_list = ds.tokenizer.convert_ids_to_tokens(tok_id_list)
+        tok_list = list(filter(lambda tok: tok != "[PAD]", tok_list))
+        print(f, mentn_cluster_list)
 
 
 def get_mention_ratio(ds: MentionDataset):
@@ -321,3 +363,5 @@ if __name__ == "__main__":
     # print(ds[0][0].size(), ds[0][1].size())
     # view_ds(ds)
     get_mention_ratio(MentionDataset())
+    ds = PairScoreDataset()
+    view_ds(ds)
