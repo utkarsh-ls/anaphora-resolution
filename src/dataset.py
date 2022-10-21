@@ -1,7 +1,11 @@
+from itertools import combinations
+from scipy.special import comb
 import os
 import numpy as np
 import torch
 from transformers import BertTokenizer
+
+from pl_module import PLModuleMention
 
 
 class MentionDataset(torch.utils.data.Dataset):
@@ -142,6 +146,7 @@ class PairScoreDataset(torch.utils.data.Dataset):
 
     def __init__(self, ds_folder="../data/clean", include_lang=["eng"], pad=True):
         super().__init__()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.pad = pad
         self.tokenizer: BertTokenizer = BertTokenizer.from_pretrained(
             "bert-base-uncased"
@@ -166,7 +171,7 @@ class PairScoreDataset(torch.utils.data.Dataset):
         token_lists = []
         ref_idx_lists = []
         mentn_cluster_lists = []
-        for i in range(len(self)):
+        for i in range(len(self.files)):
             tok_list, ref_idx_list, mention_cluster = self._parse_file(i)
             token_lists.append(tok_list)
             ref_idx_lists.append(ref_idx_list)
@@ -189,15 +194,24 @@ class PairScoreDataset(torch.utils.data.Dataset):
         if self.pad:
             for i in range(len(self.files)):
                 ref_idx_lists[i] += [0] * (self.MAX_SEQ_LEN - len(ref_idx_lists[i]))
-        
+
         self.MAX_CLUSTER_COUNT = max([len(c) for c in self.mentn_cluster_lists])
         for i in range(len(self.mentn_cluster_lists)):
-            self.mentn_cluster_lists[i] += [[]]*(self.MAX_CLUSTER_COUNT - len(self.mentn_cluster_lists[i]))
+            self.mentn_cluster_lists[i] += [[]] * (
+                self.MAX_CLUSTER_COUNT - len(self.mentn_cluster_lists[i])
+            )
 
-        self.MAX_CLUSTER_SIZE = max([max([len(c) for c in cluster_list]) for cluster_list in self.mentn_cluster_lists])
+        self.MAX_CLUSTER_SIZE = max(
+            [
+                max([len(c) for c in cluster_list])
+                for cluster_list in self.mentn_cluster_lists
+            ]
+        )
         for i in range(len(self.mentn_cluster_lists)):
             for j in range(len(self.mentn_cluster_lists[i])):
-                self.mentn_cluster_lists[i][j] += [-1]*(self.MAX_CLUSTER_SIZE - len(self.mentn_cluster_lists[i][j]))
+                self.mentn_cluster_lists[i][j] += [-1] * (
+                    self.MAX_CLUSTER_SIZE - len(self.mentn_cluster_lists[i][j])
+                )
 
         self.ref_idx_lists = torch.as_tensor(ref_idx_lists, dtype=torch.long)
         # self.one_hot_lists = []
@@ -206,15 +220,103 @@ class PairScoreDataset(torch.utils.data.Dataset):
         #     self.one_hot_lists.append(_eye[ref_idx_list])
 
         # self.one_hot_lists = torch.as_tensor(self.one_hot_lists, dtype=torch.float32)
+        mention_model = PLModuleMention(self.MAX_SEQ_LEN)
+        mention_model.load_state_dict(
+            torch.load("../mention.ckpt", map_location=self.device)["state_dict"]
+        )
+        mention_model.eval()
+        mention_model.model.eval()
+        mention_model.to(self.device)
+        for p in mention_model.parameters():
+            p.requires_grad = False
+
+        word1_embed_list = []
+        word2_embed_list = []
+        is_pair_list = []
+        with torch.no_grad():
+            mention_logits, word_embeds = mention_model(
+                self.token_id_lists.to(self.device), self.mask_lists.to(self.device)
+            )
+            mention_logits = mention_logits.cpu()
+            word_embeds = word_embeds.cpu()
+
+        selected_words = mention_logits >= 0.5
+
+        def is_in_same_cluster(i, j, clist):
+            for c in clist:
+                if i in c and j in c:
+                    return 1.0
+            return 0.0
+        
+        def stats():
+
+            def get_all_correct_pairs_cnt(men_clists):
+                cnt = 0
+                for clist in men_clists:
+                    for c in clist:
+                        clen = len([i for i in c if i != -1])
+                        cnt += clen * (clen - 1) / 2
+                return cnt
+
+
+            def get_all_acc_mention(mention_logits, men_clists):
+                sel_words = mention_logits >= 0.5
+                non_sel_words = mention_logits < 0.5
+                total_cnt, pred_pair_cnt, total_neg_cnt = (
+                    mention_logits.numel(),
+                    1e-6,
+                    non_sel_words.sum(),
+                )
+                pred_cnt, pred_pos_cnt = 0, 0
+                act_pos_cnt = 0
+                for swords, men_clist in zip(sel_words, men_clists):
+                    sel_indices = torch.arange(len(swords))[swords]
+                    act_pos_cnt += np.sum([comb(len([i for i in c if i != -1]), 2) for c in men_clist])
+                    for i, j in combinations(sel_indices, 2):
+                        true_class = is_in_same_cluster(i, j, men_clist)
+                        if true_class == 1:
+                            pred_pos_cnt += 1
+                            pred_cnt += 1
+                        pred_pair_cnt += 1
+
+                print(f"Total predicted pairs  :{pred_pair_cnt}")
+                print(
+                    f"Positive Acc: {pred_pos_cnt}/{pred_pair_cnt} : {pred_pos_cnt/pred_pair_cnt}"
+                )
+                print(f"Actual Positive pairs: {act_pos_cnt}")
+                # print(f"Negative Acc: {pred_neg_cnt}/{total_neg_cnt} : {pred_neg_cnt/total_neg_cnt}")
+
+            get_all_acc_mention(mention_logits, self.mentn_cluster_lists)
+
+            all_correct_pairs_cnt = get_all_correct_pairs_cnt(self.mentn_cluster_lists)
+            print(
+                mention_logits.numel(), selected_words.sum().item(), all_correct_pairs_cnt
+            )
+            # exit(0)
+        # stats()
+        for w_embeds, sel_words, clist in zip(
+            word_embeds, selected_words, self.mentn_cluster_lists
+        ):
+            indices = torch.arange(len(sel_words))[sel_words]
+            for i, j in combinations(indices, 2):
+                word1_embed_list.append(w_embeds[i].numpy())
+                word2_embed_list.append(w_embeds[j].numpy())
+                is_pair_list.append(is_in_same_cluster(i, j, clist))
+
+        self.word1_embed_list = torch.tensor(np.asarray(word1_embed_list))
+        self.word2_embed_list = torch.tensor(np.asarray(word2_embed_list))
+        self.is_pair_list = torch.tensor(is_pair_list)
+        print(len(is_pair_list))
+        # exit(0)
 
     def __len__(self):
-        return len(self.files)
+        return len(self.is_pair_list)
 
     def __getitem__(self, idx):
         return (
-            self.token_id_lists[idx],
-            self.mask_lists[idx],
-            self.mentn_cluster_lists[idx],
+            self.word1_embed_list[idx],
+            self.word2_embed_list[idx],
+            self.is_pair_list[idx],
         )
 
     def _parse_file(self, index):
@@ -247,7 +349,7 @@ class PairScoreDataset(torch.utils.data.Dataset):
                 continue
             word_id = int(word_id) if word_id.isnumeric() else -1
             ref_id = int(ref_id) if ref_id.isnumeric() else -1
-            
+
             word = word.lower()
             # if ref_id == 8:
             # print(line, self.files[index], flush=True)
@@ -259,7 +361,7 @@ class PairScoreDataset(torch.utils.data.Dataset):
             if word_id != -1:
                 word_ids_to_idx[word_id] = len(token_list)
             # Create clusters of co-references
-            if word_id!=-1 and ref_id!=-1 and ref_id in word_ids_to_idx:
+            if word_id != -1 and ref_id != -1 and ref_id in word_ids_to_idx:
                 word_set = set()
                 ref_set = set()
                 for c in mention_clusters:
@@ -267,14 +369,14 @@ class PairScoreDataset(torch.utils.data.Dataset):
                         word_set = c
                     if word_ids_to_idx[ref_id] in c:
                         ref_set = c
-                if len(word_set)==0 and len(ref_set)==0:
+                if len(word_set) == 0 and len(ref_set) == 0:
                     c = set()
                     c.add(word_ids_to_idx[word_id])
                     c.add(word_ids_to_idx[ref_id])
                     mention_clusters.append(c)
-                elif len(word_set)==0:
+                elif len(word_set) == 0:
                     ref_set.add(word_ids_to_idx[word_id])
-                elif len(ref_set)==0:
+                elif len(ref_set) == 0:
                     word_set.add(word_ids_to_idx[ref_id])
                 elif word_set is not ref_set:
                     mention_clusters.remove(word_set)
@@ -328,6 +430,7 @@ def view_ds(ds: MentionDataset):
         tok_list = ds.tokenizer.convert_ids_to_tokens(tok_id_list)
         tok_list = list(filter(lambda tok: tok != "[PAD]", tok_list))
         print(tok_list)
+
 
 def view_ds(ds: PairScoreDataset):
     for tok_id_list, mask, ref_idx_list, mentn_cluster_list, f in ds:

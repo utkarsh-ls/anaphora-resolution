@@ -86,31 +86,14 @@ class PLModulePairScore(pl.LightningModule):
         self.pos_wt = pos_wt
         self.lr = lr
         self.model = PairScoreModel()
-        self.mention_model = PLModuleMention(max_seq_len)
-        self.mention_model.load_state_dict(
-            torch.load(mention_wt_path, map_location=self.device)["state_dict"]
-        )
-        self.mention_model.eval()
-        for p in self.mention_model.parameters():
-            p.requires_grad = False
-        self.BCELogitsLoss = torch.nn.BCEWithLogitsLoss(
-            pos_weight=torch.tensor(self.pos_wt).to(self.device)
-        )
+        self.bce = torch.nn.BCEWithLogitsLoss()
+        self.sigmoid = torch.nn.Sigmoid()
+            # pos_weight=torch.tensor(self.pos_wt).to(self.device)
+        # )
         self.save_hyperparameters()
 
-    def forward(self, ids, mask):
-        mention_logits, word_embeds = self.mention_model.forward(ids, mask)
-        selected_words = mention_logits >= 0.5
-        all_scores = []
-        for w_embeds, sel_words in zip(word_embeds, selected_words):
-            w_embeds = w_embeds[sel_words]
-            scores = []
-            for w_embed1, w_embed2 in combinations(w_embeds, 2):
-                score = self.model.forward(w_embed1, w_embed2)
-                scores.append(score)
-            all_scores.append(scores)
-
-        return all_scores, selected_words
+    def forward(self, word1_embeds, word2_embeds):
+        return self.model(word1_embeds, word2_embeds)
 
     def loss_fn(self, mentn_cluster_lists, all_scores, selected_words):
         total_loss = 0.0
@@ -138,24 +121,22 @@ class PLModulePairScore(pl.LightningModule):
         )
 
     def _common_step(self, batch, mode: str):
-        tok_id_list, mask, mentn_cluster_lists = batch
-        scores, selected_words = self.forward(tok_id_list, mask)
+        word1_embeds, word2_embeds, is_same_cluster_list = batch
+        scores = self.forward(word1_embeds, word2_embeds)
 
-        loss, flattened_pred, flattened_gt = self.loss_fn(
-            mentn_cluster_lists, scores, selected_words
-        )
+        loss = self.bce(is_same_cluster_list, scores)
 
         self.log_dict(
             {
                 f"{mode}_loss": loss.detach(),
                 f"{mode}_pos_acc": self._pair_score_acc(
-                    flattened_pred, flattened_gt, 1, mode
+                    scores, is_same_cluster_list, 1, mode
                 ),
                 f"{mode}_neg_acc": self._pair_score_acc(
-                    flattened_pred, flattened_gt, 0, mode
+                    scores, is_same_cluster_list, 0, mode
                 ),
                 f"{mode}_all_acc": self._pair_score_acc(
-                    flattened_pred, flattened_gt, -1, mode
+                    scores, is_same_cluster_list, -1, mode
                 ),
             },
             on_step=True,
@@ -165,16 +146,17 @@ class PLModulePairScore(pl.LightningModule):
 
         return {"loss": loss}
 
-    def _pair_score_acc(self, pred, gt, _class=0, mode='Train'):
+    def _pair_score_acc(self, pred, gt, _class=0, mode="Train"):
         # gt: B, L
-        pred_cls = pred >= 0.5
+        pred_cls = self.sigmoid(pred) >= 0.5
         true_cls = gt != 0
         mask = gt == _class
         if _class == -1:
             mask = mask | True
         correct = (pred_cls == true_cls) * mask
-        self.print(f'{mode}: {correct.sum()}, {mask.sum()}, {_class}')
-        return correct.sum() / (mask.sum()+1e-6)
+        self.print(f"{mode}: {correct.sum()}, {mask.sum()}, {_class}")
+        self.print(pred.mean().item(), pred.std().item())
+        return correct.sum() / (mask.sum() + 1e-6)
 
     def training_step(self, batch, batch_idx):
         return self._common_step(batch, "train")
