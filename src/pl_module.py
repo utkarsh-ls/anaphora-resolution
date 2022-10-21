@@ -86,10 +86,10 @@ class PLModulePairScore(pl.LightningModule):
         self.pos_wt = pos_wt
         self.lr = lr
         self.model = PairScoreModel()
-        self.bce = torch.nn.BCEWithLogitsLoss()
+        self.bce = torch.nn.BCEWithLogitsLoss(
+            pos_weight=torch.tensor(self.pos_wt).to(self.device)
+        )
         self.sigmoid = torch.nn.Sigmoid()
-            # pos_weight=torch.tensor(self.pos_wt).to(self.device)
-        # )
         self.save_hyperparameters()
 
     def forward(self, word1_embeds, word2_embeds):
@@ -124,7 +124,7 @@ class PLModulePairScore(pl.LightningModule):
         word1_embeds, word2_embeds, is_same_cluster_list = batch
         scores = self.forward(word1_embeds, word2_embeds)
 
-        loss = self.bce(is_same_cluster_list, scores)
+        loss = self.bce(scores, is_same_cluster_list)
 
         self.log_dict(
             {

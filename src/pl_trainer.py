@@ -61,7 +61,7 @@ def train_pair_score():
         {"val_split": 0.2, "test_split": 0, "batch_size": 2048*128},
     )
     print(len(train_loader))
-    pl_module = PLModulePairScore("../mention.ckpt", ds.MAX_SEQ_LEN, pos_wt=1)
+    pl_module = PLModulePairScore("../mention.ckpt", ds.MAX_SEQ_LEN, pos_wt=20)
     trainer.fit(pl_module, train_loader, val_loader)
 
 

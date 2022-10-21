@@ -81,7 +81,8 @@ class MentionModel(nn.Module):
 class PairScoreModel(nn.Module):
     def __init__(self) -> None:
         super(PairScoreModel, self).__init__()
-        self.relu = nn.ReLU()
+        self.relu = nn.Tanh()
+        self.fc = nn.Linear(in_features=2 * 768, out_features=1)
         self.hidden1 = nn.Linear(in_features=2 * 768, out_features=1024)
         self.hidden2 = nn.Linear(in_features=1024, out_features=1024)
         self.hidden3 = nn.Linear(in_features=1024, out_features=1)
@@ -90,10 +91,11 @@ class PairScoreModel(nn.Module):
     def forward(self, word1_embeds, word2_embeds):
         pair_embed = torch.cat([word1_embeds, word2_embeds], dim=-1)
         assert pair_embed.size() == (word1_embeds.size(0), 2*word1_embeds.size(1))
-        scores = self.hidden1(torch.concat((word1_embeds, word2_embeds), dim=-1))
-        scores = self.relu(scores)
-        scores = self.hidden2(scores)
-        scores = self.relu(scores)
-        scores = self.hidden3(scores)
+        scores = self.fc(pair_embed)
+        # scores = self.hidden1(pair_embed)
+        # scores = self.relu(scores)
+        # scores = self.hidden2(scores)
+        # scores = self.relu(scores)
+        # scores = self.hidden3(scores)
         # scores = self.sigmoid(scores)
         return scores.squeeze(-1)
