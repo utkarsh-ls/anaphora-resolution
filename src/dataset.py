@@ -4,6 +4,7 @@ import os
 import numpy as np
 import torch
 from transformers import BertTokenizer
+import configs
 
 from pl_module import PLModuleMention
 
@@ -17,8 +18,7 @@ class MentionDataset(torch.utils.data.Dataset):
         super().__init__()
         self.pad = pad
         self.tokenizer: BertTokenizer = BertTokenizer.from_pretrained(
-            "bert-base-uncased"
-            # "google/muril-base-cased"
+            configs.transformer_model
         )
         self.include_lang = include_lang
         if include_lang:
@@ -149,8 +149,7 @@ class PairScoreDataset(torch.utils.data.Dataset):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.pad = pad
         self.tokenizer: BertTokenizer = BertTokenizer.from_pretrained(
-            "bert-base-uncased"
-            # "google/muril-base-cased"
+            configs.transformer_model
         )
         self.include_lang = include_lang
         if include_lang:
@@ -247,9 +246,8 @@ class PairScoreDataset(torch.utils.data.Dataset):
                 if i in c and j in c:
                     return 1.0
             return 0.0
-        
-        def stats():
 
+        def stats():
             def get_all_correct_pairs_cnt(men_clists):
                 cnt = 0
                 for clist in men_clists:
@@ -257,7 +255,6 @@ class PairScoreDataset(torch.utils.data.Dataset):
                         clen = len([i for i in c if i != -1])
                         cnt += clen * (clen - 1) / 2
                 return cnt
-
 
             def get_all_acc_mention(mention_logits, men_clists):
                 sel_words = mention_logits >= 0.5
@@ -271,7 +268,9 @@ class PairScoreDataset(torch.utils.data.Dataset):
                 act_pos_cnt = 0
                 for swords, men_clist in zip(sel_words, men_clists):
                     sel_indices = torch.arange(len(swords))[swords]
-                    act_pos_cnt += np.sum([comb(len([i for i in c if i != -1]), 2) for c in men_clist])
+                    act_pos_cnt += np.sum(
+                        [comb(len([i for i in c if i != -1]), 2) for c in men_clist]
+                    )
                     for i, j in combinations(sel_indices, 2):
                         true_class = is_in_same_cluster(i, j, men_clist)
                         if true_class == 1:
@@ -290,9 +289,12 @@ class PairScoreDataset(torch.utils.data.Dataset):
 
             all_correct_pairs_cnt = get_all_correct_pairs_cnt(self.mentn_cluster_lists)
             print(
-                mention_logits.numel(), selected_words.sum().item(), all_correct_pairs_cnt
+                mention_logits.numel(),
+                selected_words.sum().item(),
+                all_correct_pairs_cnt,
             )
             # exit(0)
+
         # stats()
         for w_embeds, sel_words, clist in zip(
             word_embeds, selected_words, self.mentn_cluster_lists
@@ -432,7 +434,7 @@ def view_ds(ds: MentionDataset):
         print(tok_list)
 
 
-def view_ds(ds: PairScoreDataset):
+def view_ds_ps(ds: PairScoreDataset):
     for tok_id_list, mask, ref_idx_list, mentn_cluster_list, f in ds:
         tok_list = ds.tokenizer.convert_ids_to_tokens(tok_id_list)
         tok_list = list(filter(lambda tok: tok != "[PAD]", tok_list))
@@ -466,5 +468,5 @@ if __name__ == "__main__":
     # print(ds[0][0].size(), ds[0][1].size())
     # view_ds(ds)
     get_mention_ratio(MentionDataset())
-    ds = PairScoreDataset()
+    ds = MentionDataset()
     view_ds(ds)

@@ -25,7 +25,7 @@ def train_mention():
         default_root_dir="../logs"
         # fast_dev_run=True,
     )
-    ds = MentionDataset(include_lang=["eng"])
+    ds = MentionDataset(include_lang=["eng", "hin"])
     train_loader, val_loader, test_loader = get_dataloaders(
         ds,
         {"val_split": 0.2, "test_split": 0, "batch_size": 128},
@@ -58,7 +58,7 @@ def train_pair_score():
     ds = PairScoreDataset(include_lang=["eng"])
     train_loader, val_loader, test_loader = get_dataloaders(
         ds,
-        {"val_split": 0.2, "test_split": 0, "batch_size": 2048*128},
+        {"val_split": 0.2, "test_split": 0, "batch_size": 2048 * 128},
     )
     print(len(train_loader))
     pl_module = PLModulePairScore("../mention.ckpt", ds.MAX_SEQ_LEN, pos_wt=20)
@@ -66,4 +66,4 @@ def train_pair_score():
 
 
 if __name__ == "__main__":
-    train_pair_score()
+    train_mention()
