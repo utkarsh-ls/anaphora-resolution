@@ -5,6 +5,8 @@ import file_parser
 import dataset
 import itertools
 import configs
+import bisect
+from pprint import pprint
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -57,15 +59,16 @@ class Evaluator:
         mention_list = parsed_file["is_mention"]
         # mention_list += [0] * (self.ds.MAX_SEQ_LEN - len(mention_list))
         # ret["mention_list"] = torch.as_tensor(mention_list, dtype=torch.float32)
+        # first_token_idx = parsed_file["first_token_idx"]
+        # # first_token_idx += [-1] * (self.ds.MAX_SEQ_LEN - len(first_token_idx))
+        # ret["first_token_idx"] = torch.as_tensor(first_token_idx, dtype=torch.long)
         ret["mention_list"] = mention_list
-        first_token_idx = parsed_file["first_token_idx"]
-        first_token_idx += [-1] * (self.ds.MAX_SEQ_LEN - len(first_token_idx))
-        ret["first_token_idx"] = torch.as_tensor(first_token_idx, dtype=torch.long)
         ret["mention_clusters"] = parsed_file["mention_clusters"]
+        ret["org_words"] = parsed_file["org_words"]
+        ret["first_token_idx"] = parsed_file["first_token_idx"]
 
         return ret
 
-    @torch.no_grad()
     def run_on_file(self, file):
         processed_file = self.process_file(file)
 
@@ -73,14 +76,8 @@ class Evaluator:
             processed_file["token_id_list"].to(device),
             processed_file["mask_lists"].to(device),
         )
-        sel_words = torch.sigmoid(mention_logits[0]) >= 0.9
+        sel_words = torch.sigmoid(mention_logits[0]) >= 0.92
         selected_indices = torch.arange(len(sel_words))[sel_words].tolist()
-
-        print(
-            "real mention list: ",
-            np.flatnonzero(processed_file["mention_list"]).tolist(),
-        )
-        print("predicted mention list: ", selected_indices)
 
         pred_clusters = []
 
@@ -117,13 +114,79 @@ class Evaluator:
         real_clusters = processed_file["mention_clusters"]
         real_clusters = sorted([sorted(i) for i in real_clusters])
         pred_clusters = sorted([sorted(i) for i in pred_clusters])
-        print("real_clusters: ", real_clusters)
-        print("pred_clusters: ", pred_clusters)
+
+        return (
+            processed_file["org_words"],
+            processed_file["first_token_idx"],
+            np.flatnonzero(processed_file["mention_list"]).tolist(),
+            selected_indices,
+            real_clusters,
+            pred_clusters,
+        )
+
+    def eval_single_file(self, file_name, verbose=False):
+        (
+            org_words,
+            first_token_idx,
+            mention_list_gt,
+            mention_list_pred,
+            clusters_gt,
+            clusters_pred,
+        ) = self.run_on_file(file_name)
+        if verbose:
+
+            to_word_idx = (
+                lambda tok_idx: bisect.bisect_right(first_token_idx, tok_idx) - 1
+            )
+            words_mt_list_gt = []
+            words_mt_list_pred = []
+            words_cluster_gt = []
+            words_cluster_pred = []
+            for tok_idx in mention_list_gt:
+                word_idx = to_word_idx(tok_idx)
+                assert word_idx >= 0
+                words_mt_list_gt.append(word_idx)
+            for tok_idx in mention_list_pred:
+                word_idx = to_word_idx(tok_idx)
+                assert word_idx >= 0
+                words_mt_list_pred.append(word_idx)
+
+            for c in clusters_gt:
+                word_c = []
+                for tok_idx in c:
+                    word_idx = to_word_idx(tok_idx)
+                    assert word_idx >= 0
+                    word_c.append(word_idx)
+                words_cluster_gt.append(word_c)
+            for c in clusters_pred:
+                word_c = []
+                for tok_idx in c:
+                    word_idx = to_word_idx(tok_idx)
+                    assert word_idx >= 0
+                    word_c.append(word_idx)
+                words_cluster_pred.append(word_c)
+
+            org_sentence = np.array(org_words, dtype=str)
+            print("Input Sentence: \n\t", end="")
+            print(" ".join(org_sentence))
+            print("Mention list ground truth:\t", end="")
+            print(org_sentence[words_mt_list_gt])
+            print("Mention list predicted:   \t", end="")
+            print(org_sentence[words_mt_list_pred])
+            print("Clusters ground truth:    \t", end="")
+            print([org_sentence[c].tolist() for c in words_cluster_gt])
+            print("Clusters predicted:       \t", end="")
+            print([org_sentence[c].tolist() for c in words_cluster_pred])
+
+        return clusters_gt, clusters_pred
 
 
+@torch.no_grad()
 def main():
     evl = Evaluator()
-    evl.run_on_file("../data/clean/eng_train_files/EngFile_col11.txt")
+    evl.eval_single_file(
+        "../data/clean/eng_train_files/EngFile_col7.txt", verbose=True
+    )
 
 
 if __name__ == "__main__":
