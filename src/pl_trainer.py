@@ -1,5 +1,6 @@
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
+from pytorch_lightning.plugins.io import AsyncCheckpointIO
 from dataset import get_dataloaders, MentionDataset, PairScoreDataset, get_mention_ratio
 from pl_module import PLModuleMention, PLModulePairScore
 import argparse
@@ -17,11 +18,13 @@ def train_mention():
         save_on_train_epoch_end=True,
     )
     lr_monitor_callback = LearningRateMonitor(logging_interval="epoch")
+    async_ckpt_io = AsyncCheckpointIO()
     trainer = pl.Trainer(
         accelerator="gpu",
         benchmark=True,
         precision=32,
         callbacks=[checkpoint_callback, lr_monitor_callback],
+        plugins=[async_ckpt_io],
         max_epochs=300,
         log_every_n_steps=1,
         default_root_dir="../logs"
@@ -34,7 +37,8 @@ def train_mention():
     )
     pl_module_mention = PLModuleMention(
         ds.MAX_SEQ_LEN,
-        pos_wt=200,  # get_mention_ratio(ds)
+        # pos_wt=200,
+        pos_wt=get_mention_ratio(ds),
     )
     trainer.fit(pl_module_mention, train_loader, val_loader)
 
@@ -50,11 +54,13 @@ def train_pair_score(get_stats=False):
         save_on_train_epoch_end=True,
     )
     lr_monitor_callback = LearningRateMonitor(logging_interval="epoch")
+    async_ckpt_io = AsyncCheckpointIO()
     trainer = pl.Trainer(
         accelerator="gpu",
         benchmark=True,
         precision=32,
         callbacks=[checkpoint_callback, lr_monitor_callback],
+        plugins=[async_ckpt_io],
         max_epochs=300,
         log_every_n_steps=1,
         default_root_dir="../logs"
