@@ -67,7 +67,7 @@ def train_pair_score(get_stats=False):
         # fast_dev_run=True,
     )
     ds = PairScoreDataset(
-        mention_wt_path="../all_mbert_mention.ckpt",
+        mention_wt_path=configs.mention_model_path,
         get_stats=get_stats,
         include_lang=configs.include_langs,
     )
