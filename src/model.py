@@ -6,11 +6,9 @@ import configs
 
 class MentionModel(nn.Module):
     def __init__(self) -> None:
-        super(MentionModel, self).__init__()
+        super().__init__()
 
-        self.bert_model = BertModel.from_pretrained(
-            configs.transformer_model
-        )
+        self.bert_model = BertModel.from_pretrained(configs.transformer_model)
         self.classifier = nn.Linear(in_features=768, out_features=1)
 
     def forward(self, ids, mask):
@@ -29,7 +27,7 @@ class MentionModel(nn.Module):
 
 class PairScoreModel(nn.Module):
     def __init__(self) -> None:
-        super(PairScoreModel, self).__init__()
+        super().__init__()
         self.relu = nn.Tanh()
         self.fc = nn.Linear(in_features=2 * 768, out_features=1)
         self.hidden1 = nn.Linear(in_features=2 * 768, out_features=1024)

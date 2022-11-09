@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from transformers import BertTokenizer
 import configs
+import file_parser
 
 from pl_module import PLModuleMention
 
@@ -39,11 +40,19 @@ class MentionDataset(torch.utils.data.Dataset):
         token_lists = []
         ref_idx_lists = []
         mention_lists = []
+        first_token_idx_lists = []
         for i in range(len(self)):
-            tok_list, ref_idx_list, mention_list = self._parse_file(i)
+            parsed_file = file_parser.parse_file(self, self.files[i])
+            tok_list, ref_idx_list, mention_list, first_token_idx = (
+                parsed_file["token_id_list"],
+                parsed_file["ref_index_list"],
+                parsed_file["is_mention"],
+                parsed_file["first_token_idx"],
+            )
             token_lists.append(tok_list)
             ref_idx_lists.append(ref_idx_list)
             mention_lists.append(mention_list)
+            first_token_idx_lists.append(first_token_idx)
 
         tokenizer_out = self.tokenizer.batch_encode_plus(
             token_lists,
@@ -62,9 +71,15 @@ class MentionDataset(torch.utils.data.Dataset):
             for i in range(len(self.files)):
                 ref_idx_lists[i] += [0] * (self.MAX_SEQ_LEN - len(ref_idx_lists[i]))
                 mention_lists[i] += [0] * (self.MAX_SEQ_LEN - len(mention_lists[i]))
+                first_token_idx_lists[i] += [-1] * (
+                    self.MAX_SEQ_LEN - len(first_token_idx_lists[i])
+                )
 
         self.ref_idx_lists = torch.as_tensor(ref_idx_lists, dtype=torch.long)
         self.mention_lists = torch.as_tensor(mention_lists, dtype=torch.float32)
+        self.first_token_idx_lists = torch.as_tensor(
+            first_token_idx_lists, dtype=torch.long
+        )
         # self.one_hot_lists = []
         # _eye = np.eye(self.MAX_SEQ_LEN)
         # for ref_idx_list in ref_idx_lists:
@@ -80,63 +95,8 @@ class MentionDataset(torch.utils.data.Dataset):
             self.token_id_lists[idx],
             self.mask_lists[idx],
             self.mention_lists[idx],
+            self.first_token_idx_lists[idx],
         )
-
-    def _parse_file(self, index):
-        with open(self.files[index]) as f:
-            lines = f.readlines()
-            lines = [line.strip() for line in lines]
-
-        token_list = [self.CLS_TOKEN]
-        ref_id_list = [-1]
-        is_mention = [0]
-        word_ids_to_idx = {-1: 0}
-        user_name_to_id = {}
-
-        def update_list(tok, ref_id, is_m):
-            token_list.append(tok)
-            ref_id_list.append(ref_id)
-            is_mention.append(is_m)
-
-        was_last_line_empty = True
-        for line in lines:
-            if not line:
-                update_list(self.SEP_TOKEN, -1, 0)
-                was_last_line_empty = True
-                continue
-            line = line.split()
-            if len(line) != 3:
-                continue
-            word, word_id, ref_id = line
-            if was_last_line_empty and word == "0000":
-                was_last_line_empty = False
-                continue
-            word_id = int(word_id) if word_id.isnumeric() else -1
-            ref_id = int(ref_id) if ref_id.isnumeric() else -1
-            word = word.lower()
-            # if ref_id == 8:
-            # print(line, self.files[index], flush=True)
-            if word[0] == "@":
-                if word not in user_name_to_id:
-                    user_name_to_id[word] = "user" + str(len(user_name_to_id))
-                word = user_name_to_id[word]
-
-            if word_id != -1:
-                word_ids_to_idx[word_id] = len(token_list)
-            tokens = self.tokenizer.tokenize(word)
-            update_list(tokens[0], ref_id, 1 if word_id != -1 else 0)
-            was_last_line_empty = False
-            tokens = tokens[1:]
-            for tok in tokens:
-                update_list(tok, -1, 0)
-
-        token_id_list = self.tokenizer.convert_tokens_to_ids(token_list)
-        # tokenizer_out = self.tokenizer.encode_plus(token_list, add_special_tokens=False,padding=False,return_tensors='pt')
-        ref_index_list = [word_ids_to_idx.get(ref_id, 0) for ref_id in ref_id_list]
-
-        assert len(token_id_list) == len(ref_index_list) == len(is_mention)
-        return token_id_list, ref_index_list, is_mention
-        # return tokenizer_out['input_ids'], tokenizer_out['attention_mask'], ref_index_list
 
 
 class PairScoreDataset(torch.utils.data.Dataset):
@@ -171,7 +131,12 @@ class PairScoreDataset(torch.utils.data.Dataset):
         ref_idx_lists = []
         mentn_cluster_lists = []
         for i in range(len(self.files)):
-            tok_list, ref_idx_list, mention_cluster = self._parse_file(i)
+            parsed_file = file_parser.parse_file(self, self.files[i])
+            tok_list, ref_idx_list, mention_cluster = (
+                parsed_file["token_id_list"],
+                parsed_file["ref_index_list"],
+                parsed_file["mention_clusters"],
+            )
             token_lists.append(tok_list)
             ref_idx_lists.append(ref_idx_list)
             mentn_cluster_lists.append(mention_cluster)
@@ -328,84 +293,6 @@ class PairScoreDataset(torch.utils.data.Dataset):
             self.word2_embed_list[idx],
             self.is_pair_list[idx],
         )
-
-    def _parse_file(self, index):
-        with open(self.files[index]) as f:
-            lines = f.readlines()
-            lines = [line.strip() for line in lines]
-
-        token_list = [self.CLS_TOKEN]
-        ref_id_list = [-1]
-        word_ids_to_idx = {-1: 0}
-        user_name_to_id = {}
-        mention_clusters = []
-
-        def update_list(tok, ref_id):
-            token_list.append(tok)
-            ref_id_list.append(ref_id)
-
-        was_last_line_empty = True
-        for line in lines:
-            if not line:
-                update_list(self.SEP_TOKEN, -1)
-                was_last_line_empty = True
-                continue
-            line = line.split()
-            if len(line) != 3:
-                continue
-            word, word_id, ref_id = line
-            if was_last_line_empty and word == "0000":
-                was_last_line_empty = False
-                continue
-            word_id = int(word_id) if word_id.isnumeric() else -1
-            ref_id = int(ref_id) if ref_id.isnumeric() else -1
-
-            word = word.lower()
-            # if ref_id == 8:
-            # print(line, self.files[index], flush=True)
-            if word[0] == "@":
-                if word not in user_name_to_id:
-                    user_name_to_id[word] = "user" + str(len(user_name_to_id))
-                word = user_name_to_id[word]
-
-            if word_id != -1:
-                word_ids_to_idx[word_id] = len(token_list)
-            # Create clusters of co-references
-            if word_id != -1 and ref_id != -1 and ref_id in word_ids_to_idx:
-                word_set = set()
-                ref_set = set()
-                for c in mention_clusters:
-                    if word_ids_to_idx[word_id] in c:
-                        word_set = c
-                    if word_ids_to_idx[ref_id] in c:
-                        ref_set = c
-                if len(word_set) == 0 and len(ref_set) == 0:
-                    c = set()
-                    c.add(word_ids_to_idx[word_id])
-                    c.add(word_ids_to_idx[ref_id])
-                    mention_clusters.append(c)
-                elif len(word_set) == 0:
-                    ref_set.add(word_ids_to_idx[word_id])
-                elif len(ref_set) == 0:
-                    word_set.add(word_ids_to_idx[ref_id])
-                elif word_set is not ref_set:
-                    mention_clusters.remove(word_set)
-                    mention_clusters.remove(ref_set)
-                    mention_clusters.append(word_set | ref_set)
-
-            tokens = self.tokenizer.tokenize(word)
-            update_list(tokens[0], ref_id)
-            was_last_line_empty = False
-            tokens = tokens[1:]
-            for tok in tokens:
-                update_list(tok, -1)
-        token_id_list = self.tokenizer.convert_tokens_to_ids(token_list)
-        # tokenizer_out = self.tokenizer.encode_plus(token_list, add_special_tokens=False,padding=False,return_tensors='pt')
-        ref_index_list = [word_ids_to_idx.get(ref_id, 0) for ref_id in ref_id_list]
-
-        assert len(token_id_list) == len(ref_index_list)
-        return token_id_list, ref_index_list, mention_clusters
-        # return tokenizer_out['input_ids'], tokenizer_out['attention_mask'], ref_index_list
 
 
 def get_dataloaders(ds, config):

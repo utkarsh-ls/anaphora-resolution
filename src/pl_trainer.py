@@ -2,6 +2,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
 from dataset import get_dataloaders, MentionDataset, PairScoreDataset, get_mention_ratio
 from pl_module import PLModuleMention, PLModulePairScore
+import argparse
 
 
 def train_mention():
@@ -61,9 +62,16 @@ def train_pair_score():
         {"val_split": 0.2, "test_split": 0, "batch_size": 2048 * 128},
     )
     print(len(train_loader))
-    pl_module = PLModulePairScore("../mention.ckpt", ds.MAX_SEQ_LEN, pos_wt=53)
+    pl_module = PLModulePairScore("", ds.MAX_SEQ_LEN, pos_wt=53)
     trainer.fit(pl_module, train_loader, val_loader)
 
 
 if __name__ == "__main__":
-    train_pair_score()
+    # set argparser to train which model
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", type=str, default="mention")
+    args = parser.parse_args()
+    if args.model == "mention":
+        train_mention()
+    else:
+        train_pair_score()

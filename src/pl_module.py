@@ -21,7 +21,7 @@ class PLModuleMention(pl.LightningModule):
         return self.model.forward(ids, mask)
 
     def _common_step(self, batch, mode: str):
-        tok_id_list, mask, is_mention_list = batch
+        tok_id_list, mask, is_mention_list, first_token_idx_list = batch
         mention_logits, word_embeds = self.forward(tok_id_list, mask)
 
         loss = self.loss_fn(mention_logits, is_mention_list)
