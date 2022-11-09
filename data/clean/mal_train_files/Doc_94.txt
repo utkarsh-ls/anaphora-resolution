@@ -1,0 +1,32 @@
+0000	-	-
+@apoorvagopalan	-	-
+@puthiyakathvaha	-	-
+@_dude_kl14_	-	-
+സ്വയം	-	-
+വെള്ളപൂശൽ"	-	-
+
+0000	-	-
+@brututweets	-	-
+@puthiyakathvaha	-	-
+@_dude_kl14_	-	-
+ubaid	A1	B-ante1
+annan!!!	A2	I-ante1
+<url>	-	-
+
+0000	-	-
+@apoorvagopalan	-	-
+@puthiyakathvaha	-	-
+@_dude_kl14_	-	-
+കണ്ടായിരുന്നു	-	-
+but	-	-
+അവൻ	1	-
+ഒരു	-	-
+അസൽ	-	-
+സ്ത്രീ	-	-
+വിരോധിയും	-	-
+സദാചാരവാദിയും	-	-
+ആണ്	-	-
+അതോണ്ട്	-	-
+സപ്പോർട്ട്	-	-
+ചെയ്യാറില്ല	-	-
+

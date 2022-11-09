@@ -27,12 +27,19 @@ def parse_file(ds, file_name):
         if len(line) != 3:
             continue
         word, word_id, ref_id = line
+        if (not word_id.isnumeric()) and word_id != "-":
+            continue
+        if (not ref_id.isnumeric()) and ref_id != "-":
+            continue
+        word = word.lower()
+        tokens = ds.tokenizer.tokenize(word)
+        if len(tokens) == 0:
+            continue
         if was_last_line_empty and word == "0000":
             was_last_line_empty = False
             continue
         word_id = int(word_id) if word_id.isnumeric() else -1
         ref_id = int(ref_id) if ref_id.isnumeric() else -1
-        word = word.lower()
         # if ref_id == 8:
         # print(line, self.files[index], flush=True)
         if word[0] == "@":
@@ -65,7 +72,6 @@ def parse_file(ds, file_name):
                 mention_clusters.remove(ref_set)
                 mention_clusters.append(word_set | ref_set)
 
-        tokens = ds.tokenizer.tokenize(word)
         first_token_idx.append(len(token_list))
         org_words.append(word)
         update_list(tokens[0], ref_id, 1 if word_id != -1 else 0)

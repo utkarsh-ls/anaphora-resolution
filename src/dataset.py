@@ -307,7 +307,9 @@ def get_dataloaders(ds, config):
     # print("TEST SIZE:", test_size)
 
     train_ds, val_ds, test_ds = torch.utils.data.random_split(
-        ds, [train_size, val_size, test_size]
+        ds,
+        [train_size, val_size, test_size],
+        generator=torch.Generator().manual_seed(42),
     )
     train_loader = torch.utils.data.DataLoader(
         train_ds, batch_size=config["batch_size"], shuffle=True, num_workers=8

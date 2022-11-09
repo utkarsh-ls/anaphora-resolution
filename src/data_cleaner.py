@@ -38,7 +38,7 @@ def remove_emojis(data):
 
 if __name__ == "__main__":
     data_dirs = os.listdir(DATA)
-    data_dirs = ["eng_train_files"]
+    data_dirs = ["mal_train_files"]
     for data_dir in data_dirs:
         DATA_PATH = os.path.join(DATA, data_dir)
         NEW_DATA_PATH = os.path.join(DATA, "../clean/", data_dir)
@@ -67,6 +67,7 @@ if __name__ == "__main__":
 
                 clean_line_start = clean(
                     line_start,
+                    to_ascii=False,
                     no_line_breaks=True,
                     no_urls=True,
                     no_emails=True,
@@ -79,6 +80,7 @@ if __name__ == "__main__":
                     replace_with_phone_number="number",
                     no_emoji=True,
                 )
+                clean_line_start = remove_emojis(clean_line_start)
                 if not clean_line_start:
                     continue
                 if clean_line_start[0] in ['"', "'", "&"]:
