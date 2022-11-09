@@ -32,11 +32,14 @@ def train_mention():
         ds,
         {"val_split": 0.2, "test_split": 0, "batch_size": 128},
     )
-    pl_module_mention = PLModuleMention(ds.MAX_SEQ_LEN, pos_wt=get_mention_ratio(ds))
+    pl_module_mention = PLModuleMention(
+        ds.MAX_SEQ_LEN,
+        pos_wt=200,  # get_mention_ratio(ds)
+    )
     trainer.fit(pl_module_mention, train_loader, val_loader)
 
 
-def train_pair_score():
+def train_pair_score(get_stats=False):
     checkpoint_callback = ModelCheckpoint(
         dirpath="../logs/checkpoints",
         filename="checkpoint_{epoch:02d}_{train_loss:.4f}",
@@ -57,13 +60,17 @@ def train_pair_score():
         default_root_dir="../logs"
         # fast_dev_run=True,
     )
-    ds = PairScoreDataset(include_lang=["eng"])
+    ds = PairScoreDataset(
+        mention_wt_path="../all_mbert_mention.ckpt",
+        get_stats=get_stats,
+        include_lang=configs.include_langs,
+    )
     train_loader, val_loader, test_loader = get_dataloaders(
         ds,
         {"val_split": 0.2, "test_split": 0, "batch_size": 2048 * 128},
     )
     print(len(train_loader))
-    pl_module = PLModulePairScore("", ds.MAX_SEQ_LEN, pos_wt=53)
+    pl_module = PLModulePairScore("", ds.MAX_SEQ_LEN, pos_wt=111)
     trainer.fit(pl_module, train_loader, val_loader)
 
 
@@ -71,8 +78,9 @@ if __name__ == "__main__":
     # set argparser to train which model
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="mention")
+    parser.add_argument("--stats", action="store_true")
     args = parser.parse_args()
     if args.model == "mention":
         train_mention()
     else:
-        train_pair_score()
+        train_pair_score(args.stats)

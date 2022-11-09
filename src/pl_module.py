@@ -39,8 +39,8 @@ class PLModuleMention(pl.LightningModule):
                     mention_logits.detach(), is_mention_list, -1
                 ),
             },
-            on_step=True,
-            on_epoch=False,
+            on_step=False,
+            on_epoch=True,
             prog_bar=True,
         )
 
@@ -139,8 +139,8 @@ class PLModulePairScore(pl.LightningModule):
                     scores, is_same_cluster_list, -1, mode
                 ),
             },
-            on_step=True,
-            on_epoch=False,
+            on_step=False,
+            on_epoch=True,
             prog_bar=True,
         )
 

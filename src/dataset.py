@@ -104,7 +104,14 @@ class PairScoreDataset(torch.utils.data.Dataset):
     SEP_TOKEN = "[SEP]"
     MAX_SEQ_LEN = 410
 
-    def __init__(self, ds_folder="../data/clean", include_lang=["eng"], pad=True):
+    def __init__(
+        self,
+        mention_wt_path: str,
+        get_stats=False,
+        ds_folder="../data/clean",
+        include_lang=["eng"],
+        pad=True,
+    ):
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.pad = pad
@@ -186,7 +193,7 @@ class PairScoreDataset(torch.utils.data.Dataset):
         # self.one_hot_lists = torch.as_tensor(self.one_hot_lists, dtype=torch.float32)
         mention_model = PLModuleMention(self.MAX_SEQ_LEN)
         mention_model.load_state_dict(
-            torch.load("../men_hin.ckpt", map_location=self.device)["state_dict"]
+            torch.load(mention_wt_path, map_location=self.device)["state_dict"]
         )
         mention_model.eval()
         mention_model.model.eval()
@@ -266,9 +273,10 @@ class PairScoreDataset(torch.utils.data.Dataset):
                 selected_words.sum().item(),
                 all_correct_pairs_cnt,
             )
-            # exit(0)
+            exit(0)
 
-        # stats()
+        if get_stats:
+            stats()
         for w_embeds, sel_words, clist in zip(
             word_embeds, selected_words, self.mentn_cluster_lists
         ):
