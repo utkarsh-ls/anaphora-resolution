@@ -6,7 +6,7 @@ import dataset
 import itertools
 import configs
 import bisect
-from pprint import pprint
+import eval_metric
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -133,39 +133,37 @@ class Evaluator:
             clusters_gt,
             clusters_pred,
         ) = self.run_on_file(file_name)
+
+        to_word_idx = lambda tok_idx: bisect.bisect_right(first_token_idx, tok_idx) - 1
+        words_mt_list_gt = []
+        words_mt_list_pred = []
+        words_cluster_gt = []
+        words_cluster_pred = []
+        for tok_idx in mention_list_gt:
+            word_idx = to_word_idx(tok_idx)
+            assert word_idx >= 0
+            words_mt_list_gt.append(word_idx)
+        for tok_idx in mention_list_pred:
+            word_idx = to_word_idx(tok_idx)
+            assert word_idx >= 0
+            words_mt_list_pred.append(word_idx)
+
+        for c in clusters_gt:
+            word_c = []
+            for tok_idx in c:
+                word_idx = to_word_idx(tok_idx)
+                assert word_idx >= 0
+                word_c.append(word_idx)
+            words_cluster_gt.append(word_c)
+        for c in clusters_pred:
+            word_c = []
+            for tok_idx in c:
+                word_idx = to_word_idx(tok_idx)
+                assert word_idx >= 0
+                word_c.append(word_idx)
+            words_cluster_pred.append(word_c)
+
         if verbose:
-
-            to_word_idx = (
-                lambda tok_idx: bisect.bisect_right(first_token_idx, tok_idx) - 1
-            )
-            words_mt_list_gt = []
-            words_mt_list_pred = []
-            words_cluster_gt = []
-            words_cluster_pred = []
-            for tok_idx in mention_list_gt:
-                word_idx = to_word_idx(tok_idx)
-                assert word_idx >= 0
-                words_mt_list_gt.append(word_idx)
-            for tok_idx in mention_list_pred:
-                word_idx = to_word_idx(tok_idx)
-                assert word_idx >= 0
-                words_mt_list_pred.append(word_idx)
-
-            for c in clusters_gt:
-                word_c = []
-                for tok_idx in c:
-                    word_idx = to_word_idx(tok_idx)
-                    assert word_idx >= 0
-                    word_c.append(word_idx)
-                words_cluster_gt.append(word_c)
-            for c in clusters_pred:
-                word_c = []
-                for tok_idx in c:
-                    word_idx = to_word_idx(tok_idx)
-                    assert word_idx >= 0
-                    word_c.append(word_idx)
-                words_cluster_pred.append(word_c)
-
             org_sentence = np.array(org_words, dtype=str)
             print("Input Sentence: \n\t", end="")
             print(" ".join(org_sentence))
@@ -178,15 +176,31 @@ class Evaluator:
             print("Clusters predicted:       \t", end="")
             print([org_sentence[c].tolist() for c in words_cluster_pred])
 
-        return clusters_gt, clusters_pred
+        return eval_metric.get_all_scores(words_cluster_gt, words_cluster_pred)
+
+    def eval_files(self):
+        test_ds = dataset.get_dataloaders(
+            self.ds, {"val_split": 0.2, "test_split": 0, "batch_size": 128}
+        )[1].dataset
+
+        test_files = [
+            test_ds.dataset.files[test_ds.indices[i]] for i in range(len(test_ds))
+        ]
+        metrics = []
+        for file in test_files:
+            metrics.append(self.eval_single_file(file))
+
+        final_metrics = (np.mean(metrics, axis=0) * 100).round(3).tolist()
+        print("MUC Score: ", final_metrics[0])
+        print("B3 Score: ", final_metrics[1])
+        print("BLANC Score: ", final_metrics[2])
 
 
 @torch.no_grad()
 def main():
     evl = Evaluator()
-    evl.eval_single_file(
-        "../data/clean/eng_train_files/EngFile_col7.txt", verbose=True
-    )
+    # evl.eval_single_file("../data/clean/eng_train_files/EngFile_col7.txt", verbose=True)
+    evl.eval_files()
 
 
 if __name__ == "__main__":
