@@ -77,7 +77,7 @@ class Evaluator:
             processed_file["token_id_list"].to(device),
             processed_file["mask_lists"].to(device),
         )
-        sel_words = torch.sigmoid(mention_logits[0]) >= 0.92
+        sel_words = torch.sigmoid(mention_logits[0]) >= 0.7
         selected_indices = torch.arange(len(sel_words))[sel_words].tolist()
 
         pred_clusters = []
@@ -119,7 +119,7 @@ class Evaluator:
             pairscore = self.pairscore_model(word1_embed, word2_embed)
             pairscore = torch.sigmoid(pairscore)
             gt_is_pair.append(get_gt_is_pair(i, j))
-            if pairscore > 0.6:
+            if pairscore > 0.7:
                 add_pair_to_clusters(i, j)
                 pred_is_pair.append(1)
             else:
@@ -157,32 +157,30 @@ class Evaluator:
             accs_pairscore,
         ) = self.run_on_file(file_name)
 
-        to_word_idx = lambda tok_idx: bisect.bisect_right(first_token_idx, tok_idx) - 1
+        to_word_idx = lambda tok_idx: max(
+            0, bisect.bisect_right(first_token_idx, tok_idx) - 1
+        )
         words_mt_list_gt = []
         words_mt_list_pred = []
         words_cluster_gt = []
         words_cluster_pred = []
         for tok_idx in mention_list_gt:
             word_idx = to_word_idx(tok_idx)
-            assert word_idx >= 0
             words_mt_list_gt.append(word_idx)
         for tok_idx in mention_list_pred:
             word_idx = to_word_idx(tok_idx)
-            assert word_idx >= 0
             words_mt_list_pred.append(word_idx)
 
         for c in clusters_gt:
             word_c = []
             for tok_idx in c:
                 word_idx = to_word_idx(tok_idx)
-                assert word_idx >= 0
                 word_c.append(word_idx)
             words_cluster_gt.append(word_c)
         for c in clusters_pred:
             word_c = []
             for tok_idx in c:
                 word_idx = to_word_idx(tok_idx)
-                assert word_idx >= 0
                 word_c.append(word_idx)
             words_cluster_pred.append(word_c)
 
@@ -191,9 +189,9 @@ class Evaluator:
             print("Input Sentence: \n\t", end="")
             print(" ".join(org_sentence))
             print("Mention list ground truth:\t", end="")
-            print(org_sentence[words_mt_list_gt])
+            print(org_sentence[words_mt_list_gt].tolist())
             print("Mention list predicted:   \t", end="")
-            print(org_sentence[words_mt_list_pred])
+            print(org_sentence[words_mt_list_pred].tolist())
             print("Clusters ground truth:    \t", end="")
             print([org_sentence[c].tolist() for c in words_cluster_gt])
             print("Clusters predicted:       \t", end="")
@@ -250,7 +248,7 @@ class Evaluator:
 @torch.no_grad()
 def main():
     evl = Evaluator()
-    # evl.eval_single_file("../data/clean/eng_train_files/EngFile_col7.txt", verbose=True)
+    # evl.eval_single_file("../data/clean/mal_train_files/Doc_2.txt", verbose=True)
     evl.eval_files()
 
 

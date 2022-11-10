@@ -33,7 +33,7 @@ def train_mention():
     ds = MentionDataset(include_lang=configs.include_langs)
     train_loader, val_loader, test_loader = get_dataloaders(
         ds,
-        {"val_split": 0.2, "test_split": 0, "batch_size": 128},
+        {"val_split": 0.2, "test_split": 0, "batch_size": configs.mention_batch_size},
     )
     pl_module_mention = PLModuleMention(
         ds.MAX_SEQ_LEN,
