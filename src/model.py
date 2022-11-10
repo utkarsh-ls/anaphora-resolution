@@ -9,7 +9,7 @@ class MentionModel(nn.Module):
         super().__init__()
 
         self.bert_model = BertModel.from_pretrained(configs.transformer_model)
-        self.classifier = nn.Linear(in_features=768, out_features=1)
+        self.classifier = nn.Linear(in_features=configs.tr_out, out_features=1)
 
     def forward(self, ids, mask):
 
@@ -17,7 +17,7 @@ class MentionModel(nn.Module):
             word_embed = self.bert_model(
                 input_ids=ids, attention_mask=mask, output_hidden_states=True
             ).last_hidden_state
-            # x has shape N , L , 768
+            # x has shape N , L , configs.tr_out
 
         mention_logits = self.classifier(word_embed)
 
@@ -29,8 +29,8 @@ class PairScoreModel(nn.Module):
     def __init__(self) -> None:
         super().__init__()
         self.relu = nn.Tanh()
-        self.fc = nn.Linear(in_features=2 * 768, out_features=1)
-        self.hidden1 = nn.Linear(in_features=2 * 768, out_features=1024)
+        self.fc = nn.Linear(in_features=2 * configs.tr_out, out_features=1)
+        self.hidden1 = nn.Linear(in_features=2 * configs.tr_out, out_features=1024)
         self.hidden2 = nn.Linear(in_features=1024, out_features=1024)
         self.hidden3 = nn.Linear(in_features=1024, out_features=1)
         self.sigmoid = nn.Sigmoid()

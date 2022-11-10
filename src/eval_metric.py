@@ -99,6 +99,34 @@ def get_all_scores(K, R):
     ]
 
 
+def get_accs_mention(men_gt, men_pred, sentence_len):
+    men_gt = [i for i in men_gt if i < sentence_len]
+    men_pred = [i for i in men_pred if i < sentence_len]
+    gt_mask = np.zeros(sentence_len)
+    gt_mask[men_gt] = 1
+    pred_mask = np.zeros(sentence_len)
+    pred_mask[men_pred] = 1
+
+    return get_accs_from_mask(gt_mask, pred_mask)
+
+
+def get_accs_pairscore(is_pair_gt, is_pair_pred):
+    return get_accs_from_mask(np.asarray(is_pair_gt), np.asarray(is_pair_pred))
+
+
+def get_accs_from_mask(gt_mask, pred_mask):
+    tp = (gt_mask * pred_mask).sum()
+    tn = ((1 - gt_mask) * (1 - pred_mask)).sum()
+    fp = ((1 - gt_mask) * pred_mask).sum()
+    fn = (gt_mask * (1 - pred_mask)).sum()
+
+    accuracy = (tp + tn) / (tp + tn + fp + fn + 1e-6)
+    precision = tp / (tp + fp + 1e-6)
+    recall = tp / (tp + fn + 1e-6)
+    f1 = 2 * precision * recall / (precision + recall + 1e-6)
+    return [accuracy, precision, recall, f1]
+
+
 if __name__ == "__main__":
     K = np.array([[0, 1, 2], [3, 4, 5, 6]])
     R = np.array([[0, 1], [2, 3], [5, 6, 7, 8]])

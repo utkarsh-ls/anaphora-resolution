@@ -66,6 +66,7 @@ class Evaluator:
         ret["mention_clusters"] = parsed_file["mention_clusters"]
         ret["org_words"] = parsed_file["org_words"]
         ret["first_token_idx"] = parsed_file["first_token_idx"]
+        ret["tok_cnt"] = len(parsed_file["token_id_list"])
 
         return ret
 
@@ -103,25 +104,45 @@ class Evaluator:
                 return 0
             return 1
 
+        gt_is_pair = []
+        pred_is_pair = []
+
+        def get_gt_is_pair(i, j):
+            for c in processed_file["mention_clusters"]:
+                if i in c and j in c:
+                    return 1
+            return 0
+
         for i, j in itertools.combinations(selected_indices, 2):
             word1_embed = word_embeds[:, i]
             word2_embed = word_embeds[:, j]
             pairscore = self.pairscore_model(word1_embed, word2_embed)
             pairscore = torch.sigmoid(pairscore)
+            gt_is_pair.append(get_gt_is_pair(i, j))
             if pairscore > 0.6:
                 add_pair_to_clusters(i, j)
+                pred_is_pair.append(1)
+            else:
+                pred_is_pair.append(0)
 
         real_clusters = processed_file["mention_clusters"]
         real_clusters = sorted([sorted(i) for i in real_clusters])
         pred_clusters = sorted([sorted(i) for i in pred_clusters])
+        gt_selected_indices = np.flatnonzero(processed_file["mention_list"]).tolist()
 
+        accs_mention = eval_metric.get_accs_mention(
+            gt_selected_indices, selected_indices, processed_file["tok_cnt"]
+        )
+        accs_pairscore = eval_metric.get_accs_pairscore(gt_is_pair, pred_is_pair)
         return (
             processed_file["org_words"],
             processed_file["first_token_idx"],
-            np.flatnonzero(processed_file["mention_list"]).tolist(),
+            gt_selected_indices,
             selected_indices,
             real_clusters,
             pred_clusters,
+            accs_mention,
+            accs_pairscore,
         )
 
     def eval_single_file(self, file_name, verbose=False):
@@ -132,6 +153,8 @@ class Evaluator:
             mention_list_pred,
             clusters_gt,
             clusters_pred,
+            accs_mention,
+            accs_pairscore,
         ) = self.run_on_file(file_name)
 
         to_word_idx = lambda tok_idx: bisect.bisect_right(first_token_idx, tok_idx) - 1
@@ -176,7 +199,11 @@ class Evaluator:
             print("Clusters predicted:       \t", end="")
             print([org_sentence[c].tolist() for c in words_cluster_pred])
 
-        return eval_metric.get_all_scores(words_cluster_gt, words_cluster_pred)
+        return (
+            eval_metric.get_all_scores(words_cluster_gt, words_cluster_pred),
+            accs_mention,
+            accs_pairscore,
+        )
 
     def eval_files(self):
         test_ds = dataset.get_dataloaders(
@@ -187,13 +214,37 @@ class Evaluator:
             test_ds.dataset.files[test_ds.indices[i]] for i in range(len(test_ds))
         ]
         metrics = []
+        accs_mention = []
+        accs_pairscore = []
         for file in test_files:
-            metrics.append(self.eval_single_file(file))
+            (
+                metric_file,
+                accs_mention_file,
+                accs_pairscore_file,
+            ) = self.eval_single_file(file)
 
-        final_metrics = (np.mean(metrics, axis=0) * 100).round(3).tolist()
-        print("MUC Score: ", final_metrics[0])
-        print("B3 Score: ", final_metrics[1])
-        print("BLANC Score: ", final_metrics[2])
+            metrics.append(metric_file)
+            accs_mention.append(accs_mention_file)
+            accs_pairscore.append(accs_pairscore_file)
+
+        mention_accs = (np.mean(accs_mention, axis=0) * 100).round(3).tolist()
+        print("For mention model:")
+        print(
+            f"accuracy: {mention_accs[0]}, precision:{mention_accs[1]},"
+            f" recall:{mention_accs[2]}, f1:{mention_accs[3]}"
+        )
+
+        pairscore_accs = (np.mean(accs_pairscore, axis=0) * 100).round(3).tolist()
+        print("For pairscore model:")
+        print(
+            f"accuracy: {pairscore_accs[0]}, precision:{pairscore_accs[1]},"
+            f" recall:{pairscore_accs[2]}, f1:{pairscore_accs[3]}"
+        )
+
+        coref_metrics = (np.mean(metrics, axis=0) * 100).round(3).tolist()
+        print("MUC Score: ", coref_metrics[0])
+        print("B3 Score: ", coref_metrics[1])
+        print("BLANC Score: ", coref_metrics[2])
 
 
 @torch.no_grad()
