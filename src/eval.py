@@ -83,6 +83,7 @@ class Evaluator:
         selected_indices = torch.arange(len(sel_words))[sel_words].tolist()
 
         pred_clusters = []
+        pair_decisions = {}
 
         def add_pair_to_clusters(idx1, idx2):
             idx1_list = None
@@ -97,14 +98,32 @@ class Evaluator:
                     break
 
             if idx1_list is None and idx2_list is None:
-                pred_clusters.append([idx1, idx2])
+                p = tuple(sorted([idx1, idx2]))
+                if p in pair_decisions and (not pair_decisions[p]):
+                    return False
+                pred_clusters.append(list(p))
             elif idx1_list is None:
+                for id2_mem in idx2_list:
+                    p = tuple(sorted((id2_mem, idx1)))
+                    if p in pair_decisions and (not pair_decisions[p]):
+                        return False
                 idx2_list.append(idx1)
             elif idx2_list is None:
+                for id1_mem in idx1_list:
+                    p = tuple(sorted((id1_mem, idx2)))
+                    if p in pair_decisions and (not pair_decisions[p]):
+                        return False
                 idx1_list.append(idx2)
             else:
-                return 0
-            return 1
+                if idx1_list is idx2_list:
+                    return True
+                for id1_mem, id2_mem in itertools.product(idx1_list, idx2_list):
+                    p = tuple(sorted((id1_mem, id2_mem)))
+                    if p in pair_decisions and (not pair_decisions[p]):
+                        return False
+                idx1_list.extend(idx2_list)
+                pred_clusters.remove(idx2_list)
+            return True
 
         gt_is_pair = []
         pred_is_pair = []
@@ -115,17 +134,42 @@ class Evaluator:
                     return 1
             return 0
 
+        pairscore_preds = []
         for i, j in itertools.combinations(selected_indices, 2):
             word1_embed = word_embeds[:, i]
             word2_embed = word_embeds[:, j]
             pairscore = self.pairscore_model(word1_embed, word2_embed)
-            pairscore = torch.sigmoid(pairscore)
+            pairscore = torch.sigmoid(pairscore).item()
+            pairscore_preds.append([pairscore, True, i, j])
+            pairscore_preds.append([1 - pairscore, False, i, j])
             gt_is_pair.append(get_gt_is_pair(i, j))
             if pairscore > 0.7:
-                add_pair_to_clusters(i, j)
+                # add_pair_to_clusters(i, j)
                 pred_is_pair.append(1)
             else:
                 pred_is_pair.append(0)
+
+        pairscore_preds = np.asarray(pairscore_preds)
+        if pairscore_preds.shape != (0,):
+            pairscore_preds = pairscore_preds[np.argsort(-pairscore_preds[:, 0])]
+        for pairscore, will_join, i, j in pairscore_preds:
+            if pairscore < 0.7:
+                break
+            if (i, j) in pair_decisions:
+                continue
+
+            if will_join:
+                mergeable = add_pair_to_clusters(i, j)
+                if mergeable:
+                    pair_decisions[(i, j)] = True
+            else:
+                merged = False
+                for c in pred_clusters:
+                    if i in c and j in c:
+                        merged = True
+                        break
+                if not merged:
+                    pair_decisions[(i, j)] = False
 
         real_clusters = processed_file["mention_clusters"]
         real_clusters = sorted([sorted(i) for i in real_clusters])
@@ -334,11 +378,12 @@ def main():
         help="prediction text",
     )
     args = parser.parse_args()
-    evl = Evaluator()
 
     if args.eval_all_file:
+        evl = Evaluator()
         evl.eval_files()
     elif args.eval_single_file:
+        evl = Evaluator()
         evl.eval_single_file(args.eval_single_file, True)
     elif args.predict_from_file:
         with open("inp.txt", "r") as f:
@@ -350,11 +395,14 @@ def main():
                     line = line[:-1] + " "
                 input_str += line
 
+        evl = Evaluator()
         evl.predict_single_input(input_str, True)
     elif args.predict:
+        evl = Evaluator()
         evl.predict_single_input(args.predict, verbose=True)
     else:
         print("No option provided !!")
+        parser.print_help()
 
 
 if __name__ == "__main__":
