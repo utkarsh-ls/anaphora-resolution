@@ -1,13 +1,14 @@
 # Anaphora Resolution from Social Media Text in Indian Languages
 
+## Setup correct config
+- The project works on various configurations where we can choose between transformer backbone (mBERT or MURIL), and whether to work on all languages of a specific one.
+- To configure, just copy the required config file from `/all_configs` to `/src/configs.py`.
+
 ## Installation
 - `pip install -r requirements.txt`
 - Download weights folder from the link provided and save it in root directory of project:  
 https://iiitaphyd-my.sharepoint.com/:f:/g/personal/vedansh_mittal_students_iiit_ac_in/EtMOSJUej1ZAlXmpZsxMt4kBUf1fLItRAP8U16agboNC6Q?e=D7aSED
-
-## Setup correct config
-- The project works on various configurations where we can choose between transformer backbone (mBERT or MURIL), and whether to work on all languages of a specific one.
-- To configure, just copy the required config file from `/all_configs` to `/src/configs.py`.
+> Since, the transformer weights are large, you may want to selectively download checkpoints of a config and save them into `/saved_ckpts` folder manually. The correct checkpoint names for a particular config is present its respective configs file.
 
 ## Running code
 > Note: all following commands to be run from `/src` folder.
