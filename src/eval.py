@@ -4,6 +4,8 @@ from model import MentionModel, PairScoreModel
 import file_parser
 import dataset
 import itertools
+import tempfile
+import argparse
 import configs
 import bisect
 import eval_metric
@@ -171,6 +173,8 @@ class Evaluator:
             word_idx = to_word_idx(tok_idx)
             words_mt_list_pred.append(word_idx)
 
+        words_mt_list_pred = list(set(words_mt_list_pred))
+
         for c in clusters_gt:
             word_c = []
             for tok_idx in c:
@@ -202,6 +206,51 @@ class Evaluator:
             accs_mention,
             accs_pairscore,
         )
+
+    def predict_single_input(self, input_str, verbose=False):
+        with tempfile.NamedTemporaryFile("w+") as f:
+            for word in input_str.split():
+                f.write(word + "\t-\t-\n")
+            f.flush()
+            (
+                org_words,
+                first_token_idx,
+                _,
+                mention_list_pred,
+                _,
+                clusters_pred,
+                _,
+                _,
+            ) = self.run_on_file(f.name)
+
+        to_word_idx = lambda tok_idx: max(
+            0, bisect.bisect_right(first_token_idx, tok_idx) - 1
+        )
+        words_mt_list_pred = []
+        words_cluster_pred = []
+        for tok_idx in mention_list_pred:
+            word_idx = to_word_idx(tok_idx)
+            words_mt_list_pred.append(word_idx)
+
+        words_mt_list_pred = list(set(words_mt_list_pred))
+
+        for c in clusters_pred:
+            word_c = []
+            for tok_idx in c:
+                word_idx = to_word_idx(tok_idx)
+                word_c.append(word_idx)
+            words_cluster_pred.append(word_c)
+
+        org_sentence = np.array(org_words, dtype=str)
+        cleaned_inp_sentece = " ".join(org_sentence)
+        mention_words_list_pred = org_sentence[words_mt_list_pred].tolist()
+        word_clusters_pred = [org_sentence[c].tolist() for c in words_cluster_pred]
+        if verbose:
+            print(f"Cleaned Input Sentence Sentence: \n\t{cleaned_inp_sentece}")
+            print(f"Mention list predicted:   \t{mention_words_list_pred}")
+            print(f"Clusters predicted:       \t{word_clusters_pred}")
+
+        return (cleaned_inp_sentece, mention_words_list_pred, word_clusters_pred)
 
     def eval_files(self):
         test_ds = dataset.get_dataloaders(
@@ -247,9 +296,54 @@ class Evaluator:
 
 @torch.no_grad()
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--eval_all_file",
+        type=bool,
+        default=False,
+        nargs="?",
+        const=True,
+        help="To eval all file",
+    )
+    parser.add_argument(
+        "--eval_single_file",
+        type=str,
+        default=None,
+        nargs="?",
+        const="../data/clean/mal_train_files/Doc_2.txt",
+        help="Path to eval single file",
+    )
+    parser.add_argument(
+        "--predict_from_file",
+        type=bool,
+        default=False,
+        nargs="?",
+        const=True,
+        help="To eval all file",
+    )
+    parser.add_argument(
+        "--predict",
+        type=str,
+        default=None,
+        nargs="?",
+        const="I am going to school. \n No, you should not go.",
+        help="prediction text",
+    )
+    args = parser.parse_args()
     evl = Evaluator()
-    # evl.eval_single_file("../data/clean/mal_train_files/Doc_2.txt", verbose=True)
-    evl.eval_files()
+
+    if args.eval_all_file:
+        evl.eval_files()
+    elif args.eval_single_file:
+        evl.eval_single_file(args.eval_single_file, True)
+    elif args.predict_from_file:
+        with open("inp.txt", "r") as f:
+            input_str = f.read()
+        evl.predict_single_input(input_str, True)
+    elif args.predict:
+        evl.predict_single_input(args.predict, verbose=True)
+    else:
+        print("No option provided !!")
 
 
 if __name__ == "__main__":
