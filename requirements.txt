@@ -1,0 +1,7 @@
+pytorch-lightning==1.7.7
+torch==1.12.1+cu116
+torchtext==0.13.1
+transformers==4.23.1
+scipy==1.7.3
+clean-text==0.6.0
+tensorboard==2.10.1
