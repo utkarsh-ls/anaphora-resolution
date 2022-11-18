@@ -188,6 +188,8 @@ class Evaluator:
                 word_c.append(word_idx)
             words_cluster_pred.append(word_c)
 
+        words_cluster_pred = [sorted(set(c)) for c in words_cluster_pred]
+
         if verbose:
             org_sentence = np.array(org_words, dtype=str)
             print("Input Sentence: \n\t", end="")
@@ -209,8 +211,10 @@ class Evaluator:
 
     def predict_single_input(self, input_str, verbose=False):
         with tempfile.NamedTemporaryFile("w+") as f:
-            for word in input_str.split():
-                f.write(word + "\t-\t-\n")
+            for word in input_str.split(" "):
+                if word != "\n":
+                    word = word + "\t-\t-\n"
+                f.write(word)
             f.flush()
             (
                 org_words,
@@ -310,7 +314,7 @@ def main():
         type=str,
         default=None,
         nargs="?",
-        const="../data/clean/mal_train_files/Doc_2.txt",
+        const="../data/clean/eng_train_files/EngFile_col7.txt",
         help="Path to eval single file",
     )
     parser.add_argument(
@@ -326,7 +330,7 @@ def main():
         type=str,
         default=None,
         nargs="?",
-        const="I am going to school. \n No, you should not go.",
+        const="John is arrogant. \n Yes, he thinks he can win.",
         help="prediction text",
     )
     args = parser.parse_args()
@@ -338,7 +342,14 @@ def main():
         evl.eval_single_file(args.eval_single_file, True)
     elif args.predict_from_file:
         with open("inp.txt", "r") as f:
-            input_str = f.read()
+            input_str = ""
+            for line in f:
+                if line == "\n":
+                    line = "\n "
+                else:
+                    line = line[:-1] + " "
+                input_str += line
+
         evl.predict_single_input(input_str, True)
     elif args.predict:
         evl.predict_single_input(args.predict, verbose=True)
