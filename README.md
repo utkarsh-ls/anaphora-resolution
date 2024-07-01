@@ -33,3 +33,7 @@ Make sure to copy the old logs folder of mention model somewhere else to prevent
 
 - To generate evaluation metric over the test dataset:  
     ```python eval.py --eval_all_file```
+
+## Model training and evaluation details
+
+[Presnetation](https://iiitaphyd-my.sharepoint.com/:p:/r/personal/utkarsh_upadhyay_alumni_iiit_ac_in/_layouts/15/Doc.aspx?sourcedoc=%7B37AF730A-F066-41A1-93F5-FE540E406790%7D&file=IRE%20final%20presentation.pptx&action=edit&mobileredirect=true&DefaultItemOpen=1&login_hint=utkarsh.upadhyay%40alumni.iiit.ac.in&ct=1719846805383&wdOrigin=OFFICECOM-WEB.START.EDGEWORTH&cid=bceada01-efc5-4d5e-92eb-7a84556cf813&wdPreviousSessionSrc=HarmonyWeb&wdPreviousSession=9d64d47d-a627-48b8-837c-c0bef0291cdb)
